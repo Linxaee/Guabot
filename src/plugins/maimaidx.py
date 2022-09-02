@@ -43,9 +43,10 @@ def inner_level_q(ds1, ds2=None):
         music_data = total_list.filter(ds=(ds1, ds2))
     else:
         music_data = total_list.filter(ds=ds1)
-    for music in sorted(music_data, key = lambda i: int(i['id'])):
+    for music in sorted(music_data, key=lambda i: int(i['id'])):
         for i in music.diff:
-            result_set.append((music['id'], music['title'], music['ds'][i], diff_label[i], music['level'][i]))
+            result_set.append(
+                (music['id'], music['title'], music['ds'][i], diff_label[i], music['level'][i]))
     return result_set
 
 
@@ -90,7 +91,8 @@ async def _(bot: Bot, event: Event, state: T_State):
         if res.groups()[1] == "":
             music_data = total_list.filter(level=level, type=tp)
         else:
-            music_data = total_list.filter(level=level, diff=['绿黄红紫白'.index(res.groups()[1])], type=tp)
+            music_data = total_list.filter(
+                level=level, diff=['绿黄红紫白'.index(res.groups()[1])], type=tp)
         if len(music_data) == 0:
             rand_result = "没有这样的乐曲哦。"
         else:
@@ -123,7 +125,7 @@ async def _(bot: Bot, event: Event, state: T_State):
         await search_music.send("没有找到这样的乐曲。")
     elif len(res) < 50:
         search_result = ""
-        for music in sorted(res, key = lambda i: int(i['id'])):
+        for music in sorted(res, key=lambda i: int(i['id'])):
             search_result += f"{music['id']}. {music['title']}\n"
         await search_music.finish(Message([
             {"type": "text",
@@ -145,7 +147,8 @@ async def _(bot: Bot, event: Event, state: T_State):
     if groups[0] != "":
         try:
             level_index = level_labels.index(groups[0])
-            level_name = ['Basic', 'Advanced', 'Expert', 'Master', 'Re: MASTER']
+            level_name = ['Basic', 'Advanced',
+                          'Expert', 'Master', 'Re: MASTER']
             name = groups[1]
             music = total_list.by_id(name)
             chart = music['charts'][level_index]
@@ -193,7 +196,7 @@ BREAK: {chart['notes'][4]}
         name = groups[1]
         music = total_list.by_id(name)
         try:
-            file =f"https://www.diving-fish.com/covers/{get_cover_len4_id(music['id'])}.png"
+            file = f"https://www.diving-fish.com/covers/{get_cover_len4_id(music['id'])}.png"
             await query_chart.send(Message([
                 {
                     "type": "text",
@@ -218,7 +221,8 @@ BREAK: {chart['notes'][4]}
             await query_chart.send("未找到该乐曲")
 
 
-wm_list = ['拼机', '推分', '越级', '下埋', '夜勤', '练底力', '练手法', '打旧框', '干饭', '抓绝赞', '收歌']
+wm_list = ['拼机', '推分', '越级', '下埋', '夜勤',
+           '练底力', '练手法', '打旧框', '干饭', '抓绝赞', '收歌']
 
 
 jrwm = on_command('今日舞萌', aliases={'今日mai'})
@@ -274,7 +278,8 @@ BREAK\t5/12.5/25(外加200落)'''
         try:
             grp = re.match(r, argv[0]).groups()
             level_labels = ['绿', '黄', '红', '紫', '白']
-            level_labels2 = ['Basic', 'Advanced', 'Expert', 'Master', 'Re:MASTER']
+            level_labels2 = ['Basic', 'Advanced',
+                             'Expert', 'Master', 'Re:MASTER']
             level_index = level_labels.index(grp[0])
             chart_id = grp[2]
             line = float(argv[1])
@@ -298,7 +303,7 @@ BREAK 50落(一共{brk}个)等价于 {(break_50_reduce / 100):.3f} 个 TAP GREAT
             await query_chart.send("格式错误，输入“分数线 帮助”以查看帮助信息")
 
 
-best_40_pic = on_command('b40')
+best_40_pic = on_command('瓜瓜 b40')
 
 
 @best_40_pic.handle()
@@ -330,9 +335,9 @@ best_50_pic = on_command('b50')
 async def _(bot: Bot, event: Event, state: T_State):
     username = str(event.get_message()).strip()
     if username == "":
-        payload = {'qq': str(event.get_user_id()),'b50':True}
+        payload = {'qq': str(event.get_user_id()), 'b50': True}
     else:
-        payload = {'username': username,'b50':  True}
+        payload = {'username': username, 'b50':  True}
     img, success = await generate50(payload)
     if success == 400:
         await best_50_pic.send("未找到此玩家，请确保此玩家的用户名和查分器中的用户名相同。")
