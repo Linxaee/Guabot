@@ -220,7 +220,6 @@ class DrawBest(object):
         myDraw.text((x, y), text, font=font, fill=fill_color)
 
     # 绘制圆角
-    # 把原图片变成圆角，这个函数是从网上找的，原址 https://www.pyget.cn/p/185266
     def _circle_corner(self, img, radii):
         # 画圆（用于分离4个角）
         circle = Image.new('L', (radii * 2, radii * 2), 0)  # 创建一个黑色背景的画布
