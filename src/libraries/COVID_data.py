@@ -29,15 +29,18 @@ class cityList(List):
 
     def judge(self, name):
         target = 0
+        if name in ['国内', '全国', '中国']:
+            target = 3
+            return target
         for city in self:
             for subCity in city['subCity']:
                 if subCity['city_name'] == name:
                     target = 1
-                    break
+                    return target
         for city in self:
             if city['prov_name'] == name:
                 target = 2
-                break
+                return target
         return target
 
 headers = {
@@ -45,8 +48,10 @@ headers = {
 }
 # 请求地址
 url = 'https://voice.baidu.com/act/newpneumonia/newpneumonia/?from=osari_aladin_banner'
+urlTX = 'https://api.inews.qq.com/newsqa/v1/query/inner/publish/modules/list?modules=diseaseh5Shelf'
 # 发送请求
 response = requests.get(url=url, headers=headers)
+responseTX = requests.get(url=urlTX, headers=headers)
 # 数据解析
 data_html = response.text
 json_str = re.findall('"component":\[(.*)\],', data_html)[0]
@@ -54,6 +59,13 @@ json_str = re.findall('"component":\[(.*)\],', data_html)[0]
 json_dict = json.loads(json_str)
 caseList = json_dict['caseList']
 city_data: cityList = cityList([])
+
+internal_data_temp = json.loads(responseTX.text)['data']
+internal_data_temp = internal_data_temp['diseaseh5Shelf']
+internal_data = {}
+internal_data['lastUpdateTime'] = internal_data_temp['lastUpdateTime']
+internal_data['chinaTotal'] = internal_data_temp['chinaTotal']
+
 # 循环获取各个地区的数据
 for item in caseList:
     province = {}
@@ -92,8 +104,9 @@ for item in caseList:
         # 累计治愈
         subCity['cured'] = item['crued']
         # 更新时间
-        subCity['updateTime'] = time.strftime(
-            "%Y-%m-%d", time.localtime(int(item['updateTime'])))
+        # subCity['updateTime'] = time.strftime(
+        #     "%Y-%m-%d", time.localtime(int(item['updateTime'])))
+        subCity['relativeTime'] = province['relativeTime']
         # 风险区
         subCity['dangerousAreas'] = item['dangerousAreas']
         province['subCity'].append(subCity)

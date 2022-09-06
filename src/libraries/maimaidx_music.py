@@ -1,15 +1,19 @@
 import json
+import numpy as np
 import random
 from typing import Dict, List, Optional, Union, Tuple, Any
 from copy import deepcopy
+from src.libraries.tool import computeRa
 
 import requests
+
 
 def get_cover_len4_id(mid) -> str:
     mid = int(mid)
     if 10001 <= mid:
         mid -= 10000
     return f'{mid:04d}'
+
 
 def cross(checker: List[Any], elem: Optional[Union[Any, List[Any]]], diff):
     ret = False
@@ -53,6 +57,60 @@ def in_or_equal(checker: Any, elem: Optional[Union[Any, List[Any]]]):
         return checker == elem
 
 
+def get_ra_equal_ds(ra):
+
+    sssp_ach = 100.5
+    sss_ach = 100
+    equal_sssp_ds = 0
+    equal_sss_ds = 0
+    # 计算等价鸟加的Ra
+    for i in np.arange(1.0, 15.0, 0.1):
+        cur_ra = computeRa(i, sssp_ach)
+        if cur_ra - ra >= 0 and cur_ra - ra <= 2:
+            equal_sssp_ds = i
+            break
+     # 计算等价鸟的Ra
+    for i in np.arange(1.0, 15.0, 0.1):
+        cur_ra = computeRa(i, sss_ach)
+        if cur_ra - ra >= 0 and cur_ra - ra <= 2:
+            equal_sss_ds = i
+            break
+    return round(equal_sssp_ds, 1), round(equal_sss_ds, 1)
+# 计算推荐鸟加定数,11以下+0.8，12以上+0.6,13以上+0.4,14以上正0.2
+
+
+def get_recommend_npds(floor_npds):
+    recommend_npds = floor_npds+0.5
+    if floor_npds >= 14:
+        recommend_npds = floor_npds+0.1
+    elif floor_npds >= 13:
+        recommend_npds = floor_npds+0.3
+    elif floor_npds >= 12:
+        recommend_npds = floor_npds+0.4
+    return round(recommend_npds, 1)
+
+
+def get_ds_by_ra_ach(ra, achievement):
+    ds = -1
+    for i in np.arange(1.0, 15.0, 0.1):
+        cur_ra = computeRa(i, achievement)
+        if cur_ra - ra >= 0 and cur_ra - ra <= 2:
+            ds = i
+            break
+    return round(ds, 1)
+
+
+def get_recommend_nds(floor_npds):
+    recommend_nds = floor_npds+0.7
+    if floor_npds >= 14:
+        recommend_nds = floor_npds+0.2
+    elif floor_npds >= 13:
+        recommend_nds = floor_npds+0.4
+    elif floor_npds >= 12:
+        recommend_nds = floor_npds+0.5
+    return round(recommend_nds, 1)
+
+
 class Chart(Dict):
     tap: Optional[int] = None
     slide: Optional[int] = None
@@ -76,6 +134,28 @@ class Chart(Dict):
             return self['charter']
         return super().__getattribute__(item)
 
+# 推荐乐曲
+
+
+class rc_music(Dict):
+    id: Optional[str] = None
+    title: Optional[str] = None
+    ds: Optional[List[float]] = None
+    level: Optional[List[str]] = None
+    genre: Optional[str] = None
+    type: Optional[str] = None
+    is_new: Optional[bool] = None
+    artist: Optional[str] = None
+    achievement: Optional[float] = None
+    diff: Optional[int] = []
+    diffs_label: Optional[str] = None
+
+    def __getattribute__(self, item):
+
+        if item in self:
+            return self[item]
+        return super().__getattribute__(item)
+
 
 class Music(Dict):
     id: Optional[str] = None
@@ -86,14 +166,15 @@ class Music(Dict):
     type: Optional[str] = None
     bpm: Optional[float] = None
     version: Optional[str] = None
-    charts: Optional[Chart] = None
+    is_new: Optional[bool] = None
+    charts: Optional[List[Chart]] = None
     release_date: Optional[str] = None
     artist: Optional[str] = None
 
     diff: List[int] = []
 
     def __getattribute__(self, item):
-        if item in {'genre', 'artist', 'release_date', 'bpm', 'version'}:
+        if item in {'genre', 'artist', 'release_date', 'bpm', 'version', 'is_new'}:
             if item == 'version':
                 return self['basic_info']['from']
             return self['basic_info'][item]
@@ -121,10 +202,12 @@ class MusicList(List[Music]):
     def filter(self,
                *,
                level: Optional[Union[str, List[str]]] = ...,
-               ds: Optional[Union[float, List[float], Tuple[float, float]]] = ...,
+               ds: Optional[Union[float, List[float],
+                                  Tuple[float, float]]] = ...,
                title_search: Optional[str] = ...,
                genre: Optional[Union[str, List[str]]] = ...,
-               bpm: Optional[Union[float, List[float], Tuple[float, float]]] = ...,
+               bpm: Optional[Union[float, List[float],
+                                   Tuple[float, float]]] = ...,
                type: Optional[Union[str, List[str]]] = ...,
                diff: List[int] = ...,
                ):
@@ -151,9 +234,10 @@ class MusicList(List[Music]):
         return new_list
 
 
-obj = requests.get('https://www.diving-fish.com/api/maimaidxprober/music_data').json()
+obj = requests.get(
+    'https://www.diving-fish.com/api/maimaidxprober/music_data').json()
 total_list: MusicList = MusicList(obj)
-for __i in range(len(total_list)):
-    total_list[__i] = Music(total_list[__i])
-    for __j in range(len(total_list[__i].charts)):
-        total_list[__i].charts[__j] = Chart(total_list[__i].charts[__j])
+for i in range(len(total_list)):
+    total_list[i] = Music(total_list[i])
+    for j in range(len(total_list[i].charts)):
+        total_list[i].charts[j] = Chart(total_list[i].charts[j])

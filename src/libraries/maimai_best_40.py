@@ -10,6 +10,7 @@ from typing import Optional, Dict, List
 import aiohttp
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
 from src.libraries.maimaidx_music import get_cover_len4_id, total_list
+from src.libraries.tool import computeRa
 
 
 scoreRank = 'D C B BB BBB A AA AAA S S+ SS SS+ SSS SSS+'.split(' ')
@@ -246,7 +247,7 @@ class DrawBest(object):
         itemW = 330
         itemH = 220
         rankPic = 'D C B BB BBB A AA AAA S Sp SS SSp SSS SSSp'.split(' ')
-        diffPic = 'BSC ADV EXP MST Re'.split(' ')
+        diffPic = 'BSC ADV EXP MST MST_Re'.split(' ')
         titleFontName = 'src/static/adobe_simhei.otf'
         offsetH = [490, 730, 980]
         # 推荐列表
@@ -676,39 +677,7 @@ class DrawBest(object):
         return self.img
 
 
-def computeRa(ds: float, achievement: float, spp: bool = False) -> int:
-    baseRa = 22.4 if spp else 14.0
-    if achievement < 50:
-        baseRa = 7.0 if spp else 0.0
-    elif achievement < 60:
-        baseRa = 8.0 if spp else 5.0
-    elif achievement < 70:
-        baseRa = 9.6 if spp else 6.0
-    elif achievement < 75:
-        baseRa = 11.2 if spp else 7.0
-    elif achievement < 80:
-        baseRa = 12.0 if spp else 7.5
-    elif achievement < 90:
-        baseRa = 13.6 if spp else 8.5
-    elif achievement < 94:
-        baseRa = 15.2 if spp else 9.5
-    elif achievement < 97:
-        baseRa = 16.8 if spp else 10.5
-    elif achievement < 98:
-        baseRa = 20.0 if spp else 12.5
-    elif achievement < 99:
-        baseRa = 20.3 if spp else 12.7
-    elif achievement < 99.5:
-        baseRa = 20.8 if spp else 13.0
-    elif achievement < 100:
-        baseRa = 21.1 if spp else 13.2
-    elif achievement < 100.5:
-        baseRa = 21.6 if spp else 13.5
-
-    return math.floor(ds * (min(100.5, achievement) / 100) * baseRa)
-
-
-async def generate(payload: Dict) -> (Optional[Image.Image], bool):
+async def generate(payload: Dict):
     async with aiohttp.request("POST", "https://www.diving-fish.com/api/maimaidxprober/query/player", json=payload) as resp:
         if resp.status == 400:
             return None, 400

@@ -13,6 +13,7 @@ from src.libraries.maimaidx_music import *
 from src.libraries.image import *
 from src.libraries.maimai_best_40 import generate
 from src.libraries.maimai_best_50 import generate50
+from src.libraries.maimai_pic_draw_func import draw_recommend_pic
 import re
 
 
@@ -137,7 +138,6 @@ async def _(bot: Bot, event: Event, state: T_State):
                 }}]))
     else:
         await search_music.send(f"结果过多（{len(res)} 条），请缩小查询范围。")
-
 
 query_chart = on_regex(r"^([绿黄红紫白]?)id([0-9]+)")
 
@@ -356,4 +356,29 @@ async def _(bot: Bot, event: Event, state: T_State):
 
 # ------------------------------------------------自编写区-----------------------------------------------------------
 
+# 推分推荐
 
+recommend_score = on_command('瓜瓜 底分分析')
+
+
+@recommend_score.handle()
+async def _(bot: Bot, event: Event, state: T_State):
+    username = str(event.get_message()).strip()
+    if username == "":
+        payload = {'qq': str(event.get_user_id())}
+    else:
+        payload = {'username': username}
+    img, success = await draw_recommend_pic(payload)
+    if success == 400:
+        await best_40_pic.send("未找到此玩家，请确保此玩家的用户名和查分器中的用户名相同。")
+    elif success == 403:
+        await best_40_pic.send("该用户禁止了其他人获取数据。")
+    else:
+        await best_40_pic.send(Message([
+            {
+                "type": "image",
+                "data": {
+                    "file": f"base64://{str(image_to_base64(img), encoding='utf-8')}"
+                }
+            }
+        ]))
