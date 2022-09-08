@@ -315,6 +315,7 @@ class DrawPicInternal(object):
 
 def DrawPicByQueryCity(city, subName: Optional[str], curPage: Optional[int] = 1):
     dangerousAreas = city['dangerousAreas']
+    print(city)
     subList = dangerousAreas['subList']
     totalPage = 1
     pageNum = 40
@@ -323,6 +324,7 @@ def DrawPicByQueryCity(city, subName: Optional[str], curPage: Optional[int] = 1)
     # flag判断返回类型
     flag = 0
     for item in subList:
+
         if subName != '':
             if subName in item['area']:
                 totalNum += 1

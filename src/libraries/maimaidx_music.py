@@ -57,39 +57,6 @@ def in_or_equal(checker: Any, elem: Optional[Union[Any, List[Any]]]):
         return checker == elem
 
 
-def get_ra_equal_ds(ra):
-
-    sssp_ach = 100.5
-    sss_ach = 100
-    equal_sssp_ds = 0
-    equal_sss_ds = 0
-    # 计算等价鸟加的Ra
-    for i in np.arange(1.0, 15.0, 0.1):
-        cur_ra = computeRa(i, sssp_ach)
-        if cur_ra - ra >= 0 and cur_ra - ra <= 2:
-            equal_sssp_ds = i
-            break
-     # 计算等价鸟的Ra
-    for i in np.arange(1.0, 15.0, 0.1):
-        cur_ra = computeRa(i, sss_ach)
-        if cur_ra - ra >= 0 and cur_ra - ra <= 2:
-            equal_sss_ds = i
-            break
-    return round(equal_sssp_ds, 1), round(equal_sss_ds, 1)
-# 计算推荐鸟加定数,11以下+0.8，12以上+0.6,13以上+0.4,14以上正0.2
-
-
-def get_recommend_npds(floor_npds):
-    recommend_npds = floor_npds+0.5
-    if floor_npds >= 14:
-        recommend_npds = floor_npds+0.1
-    elif floor_npds >= 13:
-        recommend_npds = floor_npds+0.3
-    elif floor_npds >= 12:
-        recommend_npds = floor_npds+0.4
-    return round(recommend_npds, 1)
-
-
 def get_ds_by_ra_ach(ra, achievement):
     ds = -1
     for i in np.arange(1.0, 15.0, 0.1):
@@ -99,16 +66,6 @@ def get_ds_by_ra_ach(ra, achievement):
             break
     return round(ds, 1)
 
-
-def get_recommend_nds(floor_npds):
-    recommend_nds = floor_npds+0.7
-    if floor_npds >= 14:
-        recommend_nds = floor_npds+0.2
-    elif floor_npds >= 13:
-        recommend_nds = floor_npds+0.4
-    elif floor_npds >= 12:
-        recommend_nds = floor_npds+0.5
-    return round(recommend_nds, 1)
 
 
 class Chart(Dict):

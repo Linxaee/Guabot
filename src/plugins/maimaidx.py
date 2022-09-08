@@ -382,3 +382,94 @@ async def _(bot: Bot, event: Event, state: T_State):
                 }
             }
         ]))
+
+
+def get_aliases():
+    f = open('src/static/aliases.csv', 'r', encoding='utf-8')
+    tmp = f.readlines()
+    f.close()
+    for t in tmp:
+        arr = t.strip().split('\t')
+        for i in range(len(arr)):
+            if arr[i] != "":
+                music_aliases[arr[i].lower()].append(arr[0])
+                anti_aliases[arr[0].lower()].append(arr[i])
+    return music_aliases, anti_aliases
+
+
+music_aliases = defaultdict(list)
+anti_aliases = defaultdict(list)
+music_aliases, anti_aliases = get_aliases()
+
+# xx是什么歌
+find_song = on_regex(r".+是什么歌")
+
+
+@find_song.handle()
+async def _(bot: Bot, event: Event, state: T_State):
+    print(music_aliases)
+    regex = "(.+)是什么歌"
+    name = re.match(regex, str(event.get_message())
+                    ).groups()[0].strip().lower()
+    print(name)
+    if name not in music_aliases:
+        await find_song.finish("未找到此歌曲\n可能是已经寄了")
+    result_set = music_aliases[name]
+    if len(result_set) == 1:
+        music = total_list.by_title(result_set[0])
+        if (music == None):
+            await find_song.finish("未找到此歌曲\n可能是已经寄了")
+        await find_song.finish(Message([{"type": "text", "data": {"text": "您要找的是不是"}}] + song_txt(music)))
+    else:
+        s = '\n'.join(result_set)
+        await find_song.finish(f"您要找的可能是以下歌曲中的其中一首：\n{ s }")
+
+find_aliases = on_regex(r".+有什么别名")
+
+
+@find_aliases.handle()
+async def _(bot: Bot, event: Event, state: T_State):
+    regex = "(.+)有什么别名"
+    name = re.match(regex, str(event.get_message())
+                    ).groups()[0].strip().lower()
+    s = f'{name}的别名有：\n'
+    if name in music_aliases:
+        result_set1 = music_aliases[name]
+        if len(result_set1) == 1:
+            music = total_list.by_title(result_set1[0])
+            if (music == None):
+                await find_song.finish("未找到此歌曲\n可能是已经寄了")
+            name = music.title.lower()
+        else:
+            await find_song.finish(f"这个别名有很多歌,请用id查询\n或者你也可以试试：\n {name}是什么歌")
+    elif name not in anti_aliases:
+        await find_aliases.finish("未找到此歌曲\n可能是已经寄了（确认没有删除的话可通过添加别名指令自行添加）")
+    result_set = anti_aliases[name]
+    s = s + ' / '.join(result_set)
+    await find_aliases.finish(s)
+
+
+adds = on_command('添加别名')
+#white_list2 = ['702611663']
+@adds.handle()
+async def _(bot: Bot, event: Event, state: T_State):
+    req = str(event.get_message()).strip().split(" ")
+    dest_song = total_list.by_id(req[0])
+    tmp2 = ''
+    if (len(req) == 2):
+        f = open('src/static/aliases.csv', 'r', encoding='utf-8')
+        tmp = f.readlines()
+        for t in tmp:
+            arr = t.strip().split('\t')
+            if arr[0] == dest_song.title:
+                t = t.replace('\n', '')
+                t = t + "\t" + req[1] + '\n'
+                print(t)
+            tmp2 = tmp2 + t
+        f.close()
+        with open('src/static/aliases.csv', 'w', encoding='utf-8') as q:
+            q.writelines(tmp2)
+            q.close()
+        music_aliases, anti_aliases = get_aliases()
+        await adds.finish("收到(´-ω-`)别名添加成功")
+    await adds.finish("命令错误捏\n例 !add 114514 田所浩二")
