@@ -407,11 +407,9 @@ find_song = on_regex(r".+是什么歌")
 
 @find_song.handle()
 async def _(bot: Bot, event: Event, state: T_State):
-    print(music_aliases)
     regex = "(.+)是什么歌"
     name = re.match(regex, str(event.get_message())
                     ).groups()[0].strip().lower()
-    print(name)
     if name not in music_aliases:
         await find_song.finish("未找到此歌曲\n可能是已经寄了")
     result_set = music_aliases[name]
@@ -451,6 +449,8 @@ async def _(bot: Bot, event: Event, state: T_State):
 
 adds = on_command('添加别名')
 #white_list2 = ['702611663']
+
+
 @adds.handle()
 async def _(bot: Bot, event: Event, state: T_State):
     req = str(event.get_message()).strip().split(" ")

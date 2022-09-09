@@ -11,7 +11,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib.ticker import MaxNLocator
 from pyecharts.charts import Map, Geo
-from src.libraries.COVID_data import cityList, city_data, internal_data
+from src.libraries.COVID_data import cityList, get_data, get_level_list
 from src.libraries.image import resizePic, circle_corner
 
 
@@ -189,7 +189,7 @@ class DrawPicByProName(object):
 
 class DrawPicInternal(object):
     def __init__(self, cityList: cityList, prov_name: str):
-        self.city = internal_data
+        self.city = get_data()[1]
         # 记得改
         self.pic_dir = 'src/static/COVID/'
         self.stand_font = 'static/adobe_simhei.otf'
@@ -314,9 +314,7 @@ class DrawPicInternal(object):
 
 
 def DrawPicByQueryCity(city, subName: Optional[str], curPage: Optional[int] = 1):
-    dangerousAreas = city['dangerousAreas']
-    print(city)
-    subList = dangerousAreas['subList']
+    subList = get_level_list(city['city_name'])
     totalPage = 1
     pageNum = 40
     totalNum = highLevelNum = midLevelNum = 0
@@ -346,9 +344,8 @@ def DrawPicByQueryCity(city, subName: Optional[str], curPage: Optional[int] = 1)
             area['address'] = item['area']
             area['level'] = item['level']
             resList.append(area)
-
+    # print(len(resList))
     if len(resList) == 0:
-        print(123)
         return NULL, 666
     totalPage = math.ceil(totalNum / pageNum)
     totalPage = totalPage if totalPage > 0 else 1
@@ -397,6 +394,7 @@ def DrawPicByQueryCity(city, subName: Optional[str], curPage: Optional[int] = 1)
 
 
 async def generate(name: str):
+    city_data, internal_data = get_data()
     judgeRes = city_data.judge(name)
     if judgeRes == 0:
         return NULL, 233

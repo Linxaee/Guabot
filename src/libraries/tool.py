@@ -1,3 +1,5 @@
+import datetime
+import json
 import math
 import time
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
@@ -7,6 +9,12 @@ def hash(qq: int):
     days = int(time.strftime("%d", time.localtime(time.time()))) + 31 * int(
         time.strftime("%m", time.localtime(time.time()))) + 77
     return (days * qq) >> 8
+
+
+def get_current_time():
+    current_time = time.strftime(
+        '%Y/%m/%d', time.localtime(time.time()))
+    return current_time
 
 
 def resizePic(img: Image.Image, time: float):
@@ -43,3 +51,6 @@ def computeRa(ds: float, achievement: float, spp: bool = False) -> int:
         baseRa = 21.6 if spp else 13.5
 
     return math.floor(ds * (min(100.5, achievement) / 100) * baseRa)
+
+def print_to_json(json_str):
+    print(json.dumps(json_str, indent=4, ensure_ascii=False))

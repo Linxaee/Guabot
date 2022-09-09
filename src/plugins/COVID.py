@@ -16,7 +16,7 @@ from nonebot.adapters import Event, Bot
 from nonebot.adapters.cqhttp import Message
 from src.libraries.image import *
 from src.libraries.COVID_draw import generate, DrawPicByQueryCity
-from src.libraries.COVID_data import city_data, cityList
+from src.libraries.COVID_data import cityList, get_data
 
 query_by_name = on_regex(r"^疫情动态 .+$")
 
@@ -59,6 +59,7 @@ query_risk_area = on_regex(r'^风险区 .+ *\d?$')
 
 @query_risk_area.handle()
 async def _(bot: Bot, event: Event, state: T_State):
+    city_data, internal_data = get_data()
     regex = "^风险区 (.+) *(\d)?$"
     res = re.match(regex, str(event.get_message())).groups()
     name = ''
@@ -131,12 +132,14 @@ async def _(bot: Bot, event: Event, state: T_State):
             },
         ]))
     elif success == 666:
-        {
-            "type": "text",
-            "data": {
-                "text": "未查询到该地区风险区域，应该是低风险区域捏。"
+        await query_risk_area.finish(Message([
+            {
+                "type": "text",
+                "data": {
+                    "text": "未查询到该地区风险区域，应该是低风险区域捏。"
+                }
             }
-        }
+        ]))
 
     else:
         {
