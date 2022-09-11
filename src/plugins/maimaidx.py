@@ -556,7 +556,6 @@ com_list = on_regex(r".+完成表")
 @com_list.handle()
 async def _(bot: Bot, event: Event, state: T_State):
     qq = str(event.get_user_id())
-    list_dir = 'src/static/mai/ds_list/'
     regex = "(.+)完成表"
     ds = re.match(regex, str(event.get_message())
                   ).groups()[0].strip().lower()
