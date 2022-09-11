@@ -102,7 +102,7 @@ class DrawBest(object):
         self.pic_dir = 'src/static/mai/pic/'
         self.cover_dir = 'src/static/mai/cover/'
         self.img = Image.open(
-            self.pic_dir + 'gua_bg2.jpg').convert('RGBA').filter(ImageFilter.GaussianBlur(3))
+            self.pic_dir + 'gua_bg2.jpeg').convert('RGBA').filter(ImageFilter.GaussianBlur(3))
         self.ROWS_IMG = [2]
         for i in range(6):
             # 第二个参数上下图片间隔
@@ -285,9 +285,9 @@ class DrawBest(object):
             chartInfo = ReList[num]
             # 绘制模糊背景
             pngPath = self.cover_dir + \
-                f'{get_cover_len4_id(chartInfo.idNum)}.png'
+                f'{get_cover_len4_id(chartInfo.idNum)}.jpeg'
             if not os.path.exists(pngPath):
-                pngPath = self.cover_dir + '31.jpg'
+                pngPath = self.cover_dir + '0031.jpeg'
             baseImg = Image.open(pngPath).convert('RGB')
             baseImg = self._resizePic(baseImg, itemW / baseImg.size[0])
             baseImg = baseImg.crop(
@@ -405,7 +405,7 @@ class DrawBest(object):
 
             # 打开单个背景图(根据diff难度选择背景)
             baseImg = Image.open(
-                self.pic_dir+f'UI_MYDIY_MBase_{diffPic[chartInfo.diff]}.png')
+                self.pic_dir+f'UI_MYDIY_MBase_{diffPic[chartInfo.diff]}.jpeg')
             # 等比缩小单个背景图
             originW = baseImg.size[0]
             baseImg = self._resizePic(baseImg, itemW / baseImg.size[0])
@@ -413,9 +413,9 @@ class DrawBest(object):
 
             # 绘制cover
             pngPath = self.cover_dir + \
-                f'{get_cover_len4_id(chartInfo.idNum)}.png'
+                f'{get_cover_len4_id(chartInfo.idNum)}.jpeg'
             if not os.path.exists(pngPath):
-                pngPath = self.cover_dir + '1000.png'
+                pngPath = self.cover_dir + '1000.jpeg'
             pngTemp = Image.open(pngPath).convert('RGB')
             # 等比缩放
             pngTemp = self._resizePic(
@@ -497,7 +497,7 @@ class DrawBest(object):
 
             # 打开单个背景图(根据diff难度选择背景)
             baseImg = Image.open(
-                self.pic_dir+f'UI_MYDIY_MBase_{diffPic[chartInfo.diff]}.png')
+                self.pic_dir+f'UI_MYDIY_MBase_{diffPic[chartInfo.diff]}.jpeg')
             # 等比缩小单个背景图
             originW = baseImg.size[0]
             baseImg = self._resizePic(baseImg, itemW / baseImg.size[0])
@@ -505,9 +505,9 @@ class DrawBest(object):
 
             # 绘制cover
             pngPath = self.cover_dir + \
-                f'{get_cover_len4_id(chartInfo.idNum)}.png'
+                f'{get_cover_len4_id(chartInfo.idNum)}.jpeg'
             if not os.path.exists(pngPath):
-                pngPath = self.cover_dir + '1000.png'
+                pngPath = self.cover_dir + '1000.jpeg'
             pngTemp = Image.open(pngPath).convert('RGB')
             # 等比缩放
             pngTemp = self._resizePic(

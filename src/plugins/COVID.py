@@ -107,7 +107,7 @@ async def _(bot: Bot, event: Event, state: T_State):
                     }
                 }
             ]))
-    img, success = DrawPicByQueryCity(city, subName, curPage)
+    img, success = await DrawPicByQueryCity(city, subName, curPage)
     if success == 0:
         await query_risk_area.finish(Message([
             {
@@ -131,6 +131,15 @@ async def _(bot: Bot, event: Event, state: T_State):
                 }
             },
         ]))
+    elif success == 555:
+        await query_risk_area.finish(Message([
+            {
+                "type": "text",
+                "data": {
+                    "text": "接口异常，请三分钟后再试。\n这个接口经常出问题，用不了就算了（恼"
+                }
+            }
+        ]))
     elif success == 666:
         await query_risk_area.finish(Message([
             {
@@ -140,7 +149,6 @@ async def _(bot: Bot, event: Event, state: T_State):
                 }
             }
         ]))
-
     else:
         {
             "type": "text",

@@ -6,12 +6,13 @@ from multiprocessing import current_process
 import os
 import random
 import re
+import imghdr
 from typing import Optional
 import urllib.request
 from PIL import Image
 from nonebot import on_command, on_message, on_notice, require, get_driver, on_regex
 from nonebot.typing import T_State
-from nonebot.adapters.cqhttp import Message, Event, Bot
+from nonebot.adapters.cqhttp import Message, Event, Bot, MessageSegment
 from nonebot.exception import IgnoredException
 from nonebot.message import event_preprocessor
 from nonebot.matcher import Matcher
@@ -21,7 +22,7 @@ from random import randint
 
 
 def record_txt(dict, flag, img=NULL):
-    # 0发文字 1发图片
+    # 0发文字 1发gif,2发png
     if flag == 0:
         return Message([
             {
@@ -36,6 +37,23 @@ def record_txt(dict, flag, img=NULL):
                     "text": f"{dict['context']}"
                 }
             }
+
+        ])
+    elif flag == 1:
+        print(img)
+        return Message([
+            {
+                "type": "text",
+                "data": {
+                    "text": f"由用户:{dict['adder']} 添加于:{dict['time']}\n"
+                }
+            },
+            {
+                "type": "image",
+                "data": {
+                    "file":  f"file:///{img}"
+                }
+            },
 
         ])
     else:
@@ -110,7 +128,7 @@ sb_records = on_command('群友圣经', aliases={'来点圣经'})
 
 @sb_records.handle()
 async def _(bot: Bot, event: Event, state: T_State):
-    group_id = event.get_session_id().split('_')[1]
+    # group_id = event.get_session_id().split('_')[1]
     f = open('src/static/friends_sb_records.csv', 'r', encoding='utf-8')
     temp = f.readlines()
     f.close()
@@ -129,9 +147,9 @@ async def _(bot: Bot, event: Event, state: T_State):
                 print('长度不对啊这')
         res_list.append(item)
     # 随机选择一条
-    for res in res_list:
-        if res['group_id'] != group_id:
-            res_list.remove(res)
+    # for res in res_list:
+    #     if res['group_id'] != group_id:
+    #         res_list.remove(res)
     if len(res_list) == 0:
         await sb_records.finish(
             '''
@@ -142,29 +160,38 @@ async def _(bot: Bot, event: Event, state: T_State):
 在bot回复后发送<文字/图片>
 ''')
     choice = random.choice(res_list)
-    if 'tp' not in choice['context']:
-        # finish
+    img_path = 'S:\\CodeField\\Guabot\\src\\static\\friends\\'
+    if 'file-img' not in choice['context']:
         await sb_records.finish(record_txt(choice, 0))
     else:
-        index = choice['context'][2:]
-        img = Image.open(
-            f"src/static/friends/{int(index)}.png").convert('RGBA')
-        await sb_records.finish(record_txt(choice, 1, img))
-        # finish
+        if 'gif' in choice['context']:
+            file_name = choice['context']
+            gif_path = f'{img_path}{file_name}'
+            await sb_records.finish(record_txt(choice, 1, gif_path))
+        else:
+            file_name = choice['context']
+            img = Image.open(
+                f"src/static/friends/{file_name}").convert('RGBA')
+            await sb_records.finish(record_txt(choice, 2, img))
 
 # 图片添加文件夹
 
 
 def add_to_folder(url):
-    path = "src/static/friends/"
-    filelist = os.listdir(path)
-    total_num = len(filelist)
+    file_time = time.strftime('%Y-%m-%d-%H-%M-%S', time.localtime())
 
     def createFile(path: str, fpath):
         urllib.request.urlretrieve(path, fpath)
     filepath = 'src/static/friends/'
-    # 加入文件夹
-    createFile(url, f'{filepath}{total_num}.png')
+    # 创建临时图片
+    createFile(url, f'{filepath}temp.jpg')
+    # 判断图片类型
+    img_type = imghdr.what(f'{filepath}temp.jpg')
+    # 删除临时图片
+    os.remove(os.path.join(f'{filepath}temp.jpg'))
+    # 创建原文件
+    createFile(url, f'{filepath}file-img-{file_time}.{img_type}')
+
 
 # 添加到csv
 
@@ -192,7 +219,8 @@ async def _(bot: Bot, event: Event, state: T_State):
 
 @add_record.got("context", prompt="请发送要添加的文本或图片")
 async def arg_handle(bot: Bot, event: Event, state: T_State):
-    group_id = event.get_session_id().split('_')[1]
+    # group_id = event.get_session_id().split('_')[1]
+    group_id = 702611663
     current_time = get_current_time()
     if 'CQ:image' in state["context"]:
         pattern = re.compile(r'http.+')
@@ -201,14 +229,13 @@ async def arg_handle(bot: Bot, event: Event, state: T_State):
         url = pattern.search(res).group()[:-1]
         # 将参数存入state以阻止后续再向用户询问参数
         state["context"] = url  # 如果用户发送了参数则直接赋值
-        path = "src/static/friends/"
-        filelist = os.listdir(path)
-        total_num = len(filelist)
-        add_to_folder(state["context"])
+        img_type, file_time = add_to_folder(state["context"])
         add_to_csv(group_id, current_time,
-                   event.get_user_id(), f'tp{total_num}')
+                   event.get_user_id(), f'file-img-{file_time}.{img_type}')
         await add_record.finish("圣经已添加")
     else:
+        context = state["context"]
+        context = f'"{context}"'
         add_to_csv(group_id, current_time,
-                   event.get_user_id(), state["context"])
+                   event.get_user_id(), context)
         await add_record.finish("圣经已添加")

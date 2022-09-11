@@ -123,110 +123,71 @@ def get_data():
 
 # 获取风险区
 
-timestamp = str(int((time.time())))
-token = '23y0ufFl5YxIyGrI8hWRUZmKkvtSjLQA'
-nonce = '123456789abcdefg'
-passid = 'zdww'
-key = "3C502C97ABDA40D0A60FBEE50FAAD1DA"
-
-
-def get_signature():
-    zdwwsign = timestamp + 'fTN2pfuisxTavbTuYVSsNJHetwq5bJvC' + \
-        'QkjjtiLM2dCratiA' + timestamp
-    hsobj = hashlib.sha256()
-    hsobj.update(zdwwsign.encode('utf-8'))
-    signature = hsobj.hexdigest().upper()
-    # print(zdwwsignature)
-    return signature
-
-
-def get_signature_header():
-    has256 = hashlib.sha256()
-    sign_header = timestamp + token + nonce + timestamp
-    has256.update(sign_header.encode('utf-8'))
-    signatureHeader = has256.hexdigest().upper()
-    # print(signatureHeader)
-    return signatureHeader
-
 
 def get_level_data():
-    url = 'https://bmfw.www.gov.cn/bjww/interface/interfaceJson'
-
-    headers = {
-        "Accept": "application/json, text/javascript, */*; q=0.01",
-        "Accept-Encoding": "gzip, deflate, br",
-        "Accept-Language": "zh-CN,zh;q=0.9",
-        "Connection": "keep-alive",
-        # "Content-Length": "235",
-        "Content-Type": "application/json; charset=UTF-8",
-        "Host": "bmfw.www.gov.cn",
-        "Origin": "http://bmfw.www.gov.cn",
-        "Referer": "http://bmfw.www.gov.cn/yqfxdjcx/risk.html",
-        # "Sec-Fetch-Dest": "empty",
-        # "Sec-Fetch-Mode": "cors",
-        # "Sec-Fetch-Site": "cross-site",
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.87 Safari/537.36 SE 2.X MetaSr 1.0",
-        "x-wif-nonce": "QkjjtiLM2dCratiA",
-        "x-wif-paasid": "smt-application",
-        "x-wif-signature": get_signature(),
-        "x-wif-timestamp": timestamp
-    }
-
-    params = {
-        'appId': "NcApplication",
-        'paasHeader': "zdww",
-        'timestampHeader': timestamp,
-        'nonceHeader': "123456789abcdefg",
-        'signatureHeader': get_signature_header(),
-        'key': "3C502C97ABDA40D0A60FBEE50FAAD1DA"
-    }
-
-    resp = requests.post(url, headers=headers, json=params)
-    data = resp.text
-
-    # 在线获取后，保存到本地，再进行本地整理操作，减少在线访问，以免被封IP
-    with open('src/static/COVID/risk_data.log', 'w', encoding='utf-8') as f:
-        f.write(data)
+    url_risk_area = "https://wechat.wecity.qq.com/api/PneumoniaTravelNoAuth/queryAllRiskLevel"
+    payload_json = {"args": {"req": {}}, "service": "PneumoniaTravelNoAuth", "func": "queryAllRiskLevel",
+                    "context": {"userId": "a"}}
+    risk_area_data = requests.post(url=url_risk_area, json=payload_json)
+    risk_area_data = risk_area_data.text
+    with open('src/static/COVID/COVID.log', 'w', encoding='utf-8') as f:
+        f.write(risk_area_data)
 
 
 def get_high_list(data, name):
     high_list = []
-    data = data['highlist']
-    for item in data:
-        # print()
-        if name in item['city']:
-            for address in item['communitys']:
-                high_item = {}
-                county = item['county']
-                high_item['area'] = f'{county}{address}'
-                high_item['level'] = '高风险'
-                high_list.append(high_item)
+    data = data['highRiskAreaList']
+    for prov in data:
+        for city in prov['areaRiskDetails']:
+            if name in city['cityName']:
+                for item in city['communityRiskDetails']:
+                    address = item['communityName']
+                    high_item = {}
+                    county = city['areaName']
+                    high_item['address'] = f'{county}{address}'
+                    high_item['level'] = '高风险'
+                    high_list.append(high_item)
     return high_list
 
 
 def get_mid_list(data, name):
     mid_list = []
-    data = data['middlelist']
-    for item in data:
-        # print()
-        if name in item['city']:
-            for address in item['communitys']:
-                mid_item = {}
-                county = item['county']
-                mid_item['area'] = f'{county}{address}'
-                mid_item['level'] = '中风险'
-                mid_list.append(mid_item)
+    data = data['mediumRiskAreaList']
+    for prov in data:
+        for city in prov['areaRiskDetails']:
+            if name in city['cityName']:
+                for item in city['communityRiskDetails']:
+                    address = item['communityName']
+                    mid_item = {}
+                    county = city['areaName']
+                    mid_item['address'] = f'{county}{address}'
+                    mid_item['level'] = '中风险'
+                    mid_list.append(mid_item)
     return mid_list
 
 
-def get_level_list(name: str):
-    get_level_data()
-    with open('src/static/COVID/risk_data.log', 'r', encoding='utf-8') as f:
-        data_dic = json.loads(f.read())['data']
-        # 获取高风险区
-        sub_list = []
-        high_list = get_high_list(data_dic, name)
-        mid_list = get_mid_list(data_dic, name)
-        sub_list.extend(high_list)
-        sub_list.extend(mid_list)
-        return sub_list
+async def get_level_list(name: str):
+    # get_level_data()
+    with open('src/static/COVID/COVID.log', 'r', encoding='utf-8') as f:
+        data_dict = json.loads(f.read())
+        data_dict = data_dict['args']['rsp']
+        if data_dict and data_dict['code'] == 0:
+            if data_dict['code'] == 0:
+                updateTime = data_dict['latestDeadlineDate']
+                res = {}
+                sub_list = []
+                high_list = get_high_list(data_dict, name)
+                mid_list = get_mid_list(data_dict, name)
+                sub_list.extend(high_list)
+                sub_list.extend(mid_list)
+                res['sub_list'] = sub_list
+                res['updateTime'] = updateTime
+                return res, 233
+            else:
+                return NULL, 555
+        else:
+            if data_dict['code'] == 1:
+                return NULL, 555
+            else:
+                await get_level_data()
+                get_level_list(name)

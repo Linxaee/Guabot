@@ -1,3 +1,4 @@
+from datetime import datetime
 import threading
 import time
 import os
@@ -7,6 +8,7 @@ from nonebot import on_command, on_regex
 from nonebot.typing import T_State
 from nonebot.adapters import Event, Bot
 from nonebot.adapters.cqhttp import Message
+from src.libraries.maimai_pic_draw_func import draw_com_list
 
 from src.libraries.tool import hash, resizePic
 from src.libraries.maimaidx_music import *
@@ -224,15 +226,34 @@ BREAK: {chart['notes'][4]}
             await query_chart.send("未找到该乐曲")
 
 
+def get_today_events():
+    data = ''
+    with open('src/static/public/today_events.log', 'r', encoding='utf-8') as f:
+        data = f.read()
+        # str对象不可变，先变为数组再join成字符串
+        list_str = []
+        for char in data:
+            if char == '\'':
+                char = '\"'
+            list_str.append(char)
+        data = ''.join(list_str)
+        f.close()
+    data_dict = json.loads(data)
+    res = data_dict['result']
+    res = random.sample(res, 2)
+    return res
+
+
 wm_list = ['拼机', '推分', '越级', '下埋', '夜勤',
-           '练底力', '练手法', '打旧框', '干饭', '抓绝赞', '收歌']
+           '干饭',  '收歌', '睡觉', '喝可乐', '学习', '打apex', '打csgo', '打lol', '睡大觉', ]
 
 
-jrwm = on_command('今日舞萌', aliases={'今日mai'})
+jrwm = on_command('今日舞萌', aliases={'今日mai', '今日运势'})
 
 
 @jrwm.handle()
 async def _(bot: Bot, event: Event, state: T_State):
+    events_list = get_today_events()
     qq = int(event.get_user_id())
     h = hash(qq)
     rp = h % 100
@@ -246,7 +267,13 @@ async def _(bot: Bot, event: Event, state: T_State):
             s += f'宜 {wm_list[i]}\n'
         elif wm_value[i] == 0:
             s += f'忌 {wm_list[i]}\n'
-    s += "千雪提醒您：打机时不要大力拍打或滑动哦\n今日推荐歌曲："
+    s += f'历史上的今天：\n'
+    for i in range(len(events_list)):
+        event = events_list[i]
+        date = event['date']
+        title = event['title']
+        s += f'{date} {title}\n'
+    s += "今日推荐歌曲："
     music = total_list[h % len(total_list)]
     await jrwm.finish(Message([
         {"type": "text", "data": {"text": s}}
@@ -329,7 +356,7 @@ async def _(bot: Bot, event: Event, state: T_State):
                     "file": f"base64://{str(image_to_base64(img), encoding='utf-8')}"
                 }
             }
-        ]))
+        ]), at_sender=True)
 
 # best_50_pic = on_command('b50')
 # @best_50_pic.handle()
@@ -381,7 +408,7 @@ async def _(bot: Bot, event: Event, state: T_State):
                     "file": f"base64://{str(image_to_base64(img), encoding='utf-8')}"
                 }
             }
-        ]))
+        ]), at_sender=True)
 
 
 def get_aliases():
@@ -436,12 +463,20 @@ async def _(bot: Bot, event: Event, state: T_State):
         if len(result_set1) == 1:
             music = total_list.by_title(result_set1[0])
             if (music == None):
-                await find_song.finish("未找到此歌曲\n可能是已经寄了")
+                await find_song.finish('''
+未找到此歌曲，可能是已经寄了（确认没有删除的话可通过添加别名指令自行添加）
+添加别名 <歌曲id> <别名>
+例：添加别名 114514 下北泽
+                ''')
             name = music.title.lower()
         else:
             await find_song.finish(f"这个别名有很多歌,请用id查询\n或者你也可以试试：\n {name}是什么歌")
     elif name not in anti_aliases:
-        await find_aliases.finish("未找到此歌曲\n可能是已经寄了（确认没有删除的话可通过添加别名指令自行添加）")
+        await find_aliases.finish('''
+未找到此歌曲，可能是已经寄了（确认没有删除的话可通过添加别名指令自行添加）
+添加别名 <歌曲id> <别名>
+例：添加别名 114514 下北泽
+                ''')
     result_set = anti_aliases[name]
     s = s + ' / '.join(result_set)
     await find_aliases.finish(s)
@@ -472,4 +507,98 @@ async def _(bot: Bot, event: Event, state: T_State):
             q.close()
         music_aliases, anti_aliases = get_aliases()
         await adds.finish("收到(´-ω-`)别名添加成功")
-    await adds.finish("命令错误捏\n例 !add 114514 田所浩二")
+    await adds.finish("命令错误捏\n例 添加别名 114514 田所浩二")
+
+
+ds_dict = {
+    "15": "14-15",
+    "14+": "14-15",
+    "14": "14-15",
+    "13+": "13+",
+    "13": "13",
+    "12+": "12+",
+    "12": "12",
+    "11+": "11+",
+    "11": "11",
+    "10+": "10+",
+    "10": "10",
+    "9+": "9+",
+    "9": "9",
+    "8+": "8+",
+    "8": "8",
+}
+# xx定数表
+ds_list = on_regex(r".+定数表")
+
+
+@ds_list.handle()
+async def _(bot: Bot, event: Event, state: T_State):
+    list_dir = 'src/static/mai/ds_list/'
+    regex = "(.+)定数表"
+    ds = re.match(regex, str(event.get_message())
+                  ).groups()[0].strip().lower()
+    if ds not in ds_dict:
+        await ds_list.finish('暂时只支持8-15的定数表查询捏')
+    else:
+        file_name = ds_dict[ds]
+        img = Image.open(list_dir+f'{file_name}.png')
+        await ds_list.finish([{
+            "type": "image",
+            "data": {
+                    "file": f"base64://{str(image_to_base64(img), encoding='utf-8')}"
+            }
+        }])
+
+# xx完成表
+com_list = on_regex(r".+完成表")
+
+
+@com_list.handle()
+async def _(bot: Bot, event: Event, state: T_State):
+    qq = str(event.get_user_id())
+    list_dir = 'src/static/mai/ds_list/'
+    regex = "(.+)完成表"
+    ds = re.match(regex, str(event.get_message())
+                  ).groups()[0].strip().lower()
+    if ds not in ds_dict:
+        await com_list.finish('暂时只支持8-15的完成表查询捏')
+    else:
+        com_img, success = await draw_com_list(ds, qq)
+        if success == 0:
+            await com_list.finish('''
+尚未录入用户信息，请私聊bot进行登录。
+私聊bot 发送如下指令：
+查分器登录 <用户名> <密码>
+'''
+                                  )
+        elif success == 1:
+            await ds_list.finish([{
+                "type": "image",
+                "data": {
+                        "file": f"base64://{str(image_to_base64(com_img), encoding='utf-8')}"
+                }
+            }], at_sender=True)
+
+            # 登录查分器
+login = on_regex(r"查分器登录 .+ *\d?")
+
+
+@login.handle()
+async def _(bot: Bot, event: Event, state: T_State):
+    if event.message_type != "private":
+        await login.finish("只允许私聊登录哦")
+    else:
+        qq = str(event.get_user_id())
+        regex = "^查分器登录 (.+) *(\d)?$"
+        res = re.match(regex, str(event.get_message())).groups()
+        list = res[0].split(' ')
+        if len(list) == 2:
+            account = list[0]
+            password = list[1]
+            success = await login_prober(qq, account, password)
+            if success == -3:
+                await login.finish("用户名或密码错误")
+            else:
+                await login.finish("登陆成功，用户数据已记录")
+        else:
+            await login.finish("登录格式错误，请重新输入")

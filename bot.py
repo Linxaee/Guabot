@@ -7,7 +7,7 @@ from nonebot.adapters.cqhttp import Bot as CQHTTPBot
 
 
 # Custom your logger
-# 
+#
 # from nonebot.log import logger, default_format
 # logger.add("error.log",
 #            rotation="00:00",
@@ -23,12 +23,14 @@ app = nonebot.get_asgi()
 driver = nonebot.get_driver()
 driver.register_adapter("cqhttp", CQHTTPBot)
 driver.config.help_text = {}
-
+nonebot.init(apscheduler_autostart=True)
+nonebot.init(apscheduler_config={
+    "apscheduler.timezone": "Asia/Shanghai"
+})
 
 nonebot.load_plugins("src/plugins")
-
 # Modify some config / config depends on loaded configs
-# 
+#
 # config = driver.config
 # do something...
 

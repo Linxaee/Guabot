@@ -3,7 +3,7 @@ import numpy as np
 import random
 from typing import Dict, List, Optional, Union, Tuple, Any
 from copy import deepcopy
-from src.libraries.tool import computeRa
+from src.libraries.tool import computeRa, print_to_json
 
 import requests
 
@@ -66,6 +66,42 @@ def get_ds_by_ra_ach(ra, achievement):
             break
     return round(ds, 1)
 
+
+async def login_prober(qq, username, password):
+    json_dir = 'src/static/mai/user_account_json/'
+    url = 'https://www.diving-fish.com/api/maimaidxprober/login'
+    payload = {'username': username, 'password': password}
+    res = requests.post(url, json=payload)
+    status = json.loads(res.text)
+    if status['message'] != '登录成功':
+        return -3
+    else:
+        cookie = requests.utils.dict_from_cookiejar(res.cookies)
+        with open(f'{json_dir}{qq}_account.json', 'w', encoding='utf-8') as f:
+            user_account = {
+                "username": username,
+                "password": password,
+                "cookie": cookie,
+            }
+            f.write(json.dumps(user_account, ensure_ascii=False))
+            f.close()
+            return 1
+
+
+async def get_user_data(qq: str):
+    json_dir = 'src/static/mai/user_account_json/'
+    url = 'https://www.diving-fish.com/api/maimaidxprober/player/records'
+    try:
+        with open(f'{json_dir}{qq}_account.json', 'r', encoding='utf-8') as f:
+            user_account = json.loads(f.read())
+            f.close()
+    except FileNotFoundError:
+        return None, 0
+    cookie = 'jwt_token='+user_account['cookie']['jwt_token']
+    headers = {"Cookie": cookie}
+    res = requests.get(url, headers=headers)
+    records = json.loads(res.text)['records']
+    return records, 1
 
 
 class Chart(Dict):

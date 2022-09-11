@@ -9,11 +9,11 @@ import requests
 from urllib import request
 import aiohttp
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
-from src.libraries.maimaidx_music import get_cover_len4_id, total_list, rc_music,  get_ds_by_ra_ach
+from src.libraries.maimaidx_music import *
 from src.libraries.tool import *
 from src.libraries.image import *
 
-scoreRank = 'D C B BB BBB A AA AAA S S+ SS SS+ SSS SSS+'.split(' ')
+scoreRank = 'D C B BB BBB A AA AAA S Sp SS SSp SSS SSSp'.split(' ')
 combo = ' FC FC+ AP AP+'.split(' ')
 diffs = 'Basic Advanced Expert Master Re:Master'.split(' ')
 
@@ -69,6 +69,70 @@ def mix_list(sssp_list, sss_list, floor):
     for item in sss_res:
         res_list.append(item)
     return res_list
+
+# 达成率转化score序号
+
+
+def trans_score_id(achievement):
+    if achievement >= 100.5:
+        return 13
+    elif achievement >= 100:
+        return 12
+    elif achievement >= 99.5:
+        return 11
+    elif achievement >= 99:
+        return 10
+    elif achievement >= 98:
+        return 9
+    elif achievement >= 97:
+        return 8
+    elif achievement >= 94:
+        return 7
+    elif achievement >= 90:
+        return 6
+    elif achievement >= 80:
+        return 5
+    elif achievement >= 75:
+        return 4
+    elif achievement >= 70:
+        return 3
+    elif achievement >= 60:
+        return 2
+    elif achievement >= 50:
+        return 1
+    else:
+        return 0
+# 绘制无推荐时替代图
+
+
+def draw_temp_pic():
+
+    # 绘制sd区域
+    itemW = 310
+    itemH = 180
+
+    pic_dir = 'src/static/dragon/'
+    cover_dir = 'src/static/mai/cover/'
+
+    # 绘制模糊背景
+    pngPath = pic_dir + '0.png'
+    tempImg = Image.open(pngPath).convert('RGB')
+    tempImg = resizePic(tempImg, itemW / tempImg.size[0])
+    tempImg = tempImg.crop(
+        (0, (tempImg.size[1] - itemH) / 2, itemW, (tempImg.size[1] + itemH) / 2))
+    tempImg = tempImg.filter(ImageFilter.GaussianBlur(5))
+    tempImg = circle_corner(tempImg, 30)
+
+    tempDraw = ImageDraw.Draw(tempImg)
+    fontName = 'src/static/mht.ttf'
+    font = ImageFont.truetype(fontName, 58, encoding='utf-8')
+    # 计算出要写入的文字占用的像素
+    Text = '暂无推荐'
+    w, h = font.getsize(Text)
+    text_border(tempDraw, (tempImg.size[0]-w)/2, (tempImg.size[1]-h)/2,
+                font, 'black', 'white', '暂无推荐')
+    # tempImg.show()
+    return tempImg
 
 
 class ChartInfo(object):
@@ -366,7 +430,7 @@ async def draw_recommend_pic(payload: Dict):
         fontName = 'src/static/mht.ttf'
         adobe = 'src/static/adobe_simhei.otf'
         baseImg = Image.open(
-            pic_dir + 'gua_bg2.jpg').convert('RGBA').filter(ImageFilter.GaussianBlur(3))
+            pic_dir + 'gua_bg2.jpeg').convert('RGBA').filter(ImageFilter.GaussianBlur(3))
         # w1280 h914
         baseImg = baseImg.resize((1280, 914), Image.ANTIALIAS)
         baseDraw = ImageDraw.Draw(baseImg)
@@ -391,9 +455,9 @@ async def draw_recommend_pic(payload: Dict):
             id = chartInfo['id']
             # 绘制模糊背景
             pngPath = cover_dir + \
-                f'{get_cover_len4_id(id)}.png'
+                f'{get_cover_len4_id(id)}.jpeg'
             if not os.path.exists(pngPath):
-                pngPath = cover_dir + '31.jpg'
+                pngPath = cover_dir + '0031.jpeg'
             chartImg = Image.open(pngPath).convert('RGB')
             chartImg = resizePic(chartImg, itemW / chartImg.size[0])
             chartImg = chartImg.crop(
@@ -495,9 +559,9 @@ async def draw_recommend_pic(payload: Dict):
 
             # 绘制模糊背景
             pngPath = cover_dir + \
-                f'{get_cover_len4_id(id)}.png'
+                f'{get_cover_len4_id(id)}.jpeg'
             if not os.path.exists(pngPath):
-                pngPath = cover_dir + '31.jpg'
+                pngPath = cover_dir + '0031.jpeg'
             chartImg = Image.open(pngPath).convert('RGB')
             chartImg = resizePic(chartImg, itemW / chartImg.size[0])
             chartImg = chartImg.crop(
@@ -759,34 +823,185 @@ async def draw_recommend_pic(payload: Dict):
                       baseImg.size[1]-b15_board_img.size[1]-175), guaguaImg)
     return baseImg, 0
 
-# 绘制无推荐时替代图
+
+ds_dict = {
+    "15": [14.0, 15.0],
+    "14+": [14.0, 15.0],
+    "14": [14.0, 15.0],
+    "13+": [13.7, 13.9],
+    "13": [13.0, 13.6],
+    "12+": [12.7, 12.9],
+    "12": [12.0, 12.6],
+    "11+": [11.7, 11.9],
+    "11": [11.0, 11.6],
+    "10+": [10.7, 10.9],
+    "10": [10.0, 10.6],
+    "9+": [9.7, 9.9],
+    "9": [9.0, 9.6],
+    "8+": [8.7, 8.9],
+    "8": [8.0, 8.6],
+}
+color_dict = {
+    "Bas": (69, 193, 36),
+    "Adv": (248, 176, 8),
+    "Exp": (255, 90, 102),
+    "Mst": (159, 81, 220),
+    "ReM": (226, 209, 240),
+}
+
+# 绘制定数表
 
 
-def draw_temp_pic():
+async def draw_com_list(ds: str, qq: str):
 
-    # 绘制sd区域
-    itemW = 310
-    itemH = 180
+    def inner_level_q(ds1, ds2=None):
+        result_set = []
+        diff_label = ['Bas', 'Adv', 'Exp', 'Mst', 'ReM']
+        if ds2 is not None:
+            music_data = total_list.filter(ds=(ds1, ds2))
+        else:
+            music_data = total_list.filter(ds=ds1)
+        for music in sorted(music_data, key=lambda i: int(i['id'])):
+            for i in music.diff:
+                result_set.append(
+                    {"id": music['id'], "title": music['title'], "ds": music['ds'][i], "diff_label": diff_label[i], "diff_index": i, "level": music['level'][i], "type": music['type'], "achievement": 0})
+        return result_set
 
-    pic_dir = 'src/static/dragon/'
+    def contact_img(src_img, len):
+        pic_dir = 'src/static/mai/pic/'
+        bg_img = Image.open(
+            pic_dir + 'UI_UNL_BG.png').convert('RGBA')
+        src_w, src_h = src_img.size
+        bg_w, bg_h = bg_img.size
+        # 生成等长白布
+        temp_img = Image.new('RGB', (src_w, src_h+len), (255, 255, 255))
+        box = (0, 0, bg_w, len)
+        bg_img = bg_img.crop(box)
+        temp_img.paste(src_img, (0, 0))
+        temp_img.paste(bg_img, (0, src_h))
+        if len > bg_h:
+            diff = len-bg_h
+            temp_img.paste(bg_img, (0, src_h+diff))
+        # src_img.paste(bg_img, (0, src_h), bg_img)
+        # src_img.show()
+        return temp_img
+
+    records, success = await get_user_data(qq)
+    if success == 0:
+        return None, 0
+    ds_range = ds_dict[ds]
+    com_list = []
+    for item in records:
+        if item['ds'] >= ds_range[0] and item['ds'] <= ds_range[1]:
+            com_list.append(item)
+
+    ds_range = ds_dict[ds]
+    # 筛出范围内的乐曲
+    music_list = inner_level_q(ds_range[0], ds_range[1])
+    # 按定数排序
+    music_list = sorted(music_list, key=lambda i: i['ds'])
+    for music in music_list:
+        for com_music in com_list:
+            if int(music['id']) == com_music['song_id'] and music['diff_index'] == com_music['level_index']:
+                music['achievement'] = com_music['achievements']
+    # 计算出每种定数各有多少个
+    ds_num_list = []
+    count = 0
+    cur_ds = ds_range[0]
+    for i in range(len(music_list)):
+        music = music_list[i]
+        if cur_ds == music['ds']:
+            count = count + 1
+        else:
+            ds_num_list.append(count)
+            count = 1
+            cur_ds = music['ds']
+        if i == len(music_list)-1:
+            ds_num_list.append(count)
+            count = 1
+    if ds == '15' or ds == '14' or ds == '14+':
+        ds = '14-15'
+    pic_dir = 'src/static/mai/pic/'
     cover_dir = 'src/static/mai/cover/'
+    bg_img = Image.open(
+        pic_dir + 'UI_UNL_BG.png').convert('RGBA')
+    gua_logo = resizePic(Image.open(
+        pic_dir + 'gua_logo.png').convert('RGBA'), 0.4)
+    bg_draw = ImageDraw.Draw(bg_img)
+    adobe = 'src/static/adobe_simhei.otf'
+    mft = 'src/static/msyh.ttc'
 
-    # 绘制模糊背景
-    pngPath = pic_dir + '0.png'
-    tempImg = Image.open(pngPath).convert('RGB')
-    tempImg = resizePic(tempImg, itemW / tempImg.size[0])
-    tempImg = tempImg.crop(
-        (0, (tempImg.size[1] - itemH) / 2, itemW, (tempImg.size[1] + itemH) / 2))
-    tempImg = tempImg.filter(ImageFilter.GaussianBlur(5))
-    tempImg = circle_corner(tempImg, 30)
+    bg_w, bg_h = bg_img.size
+    # 板块间隔
+    block_margin = 30
+    # 单体间隔
+    item_margin = 15
+    # 每行个数
+    row_num = 10
+    # 单个封面大小
+    item_len = 75
 
-    tempDraw = ImageDraw.Draw(tempImg)
-    fontName = 'src/static/mht.ttf'
-    font = ImageFont.truetype(fontName, 58, encoding='utf-8')
-    # 计算出要写入的文字占用的像素
-    Text = '暂无推荐'
-    w, h = font.getsize(Text)
-    text_border(tempDraw, (tempImg.size[0]-w)/2, (tempImg.size[1]-h)/2,
-                font, 'black', 'white', '暂无推荐')
-    # tempImg.show()
-    return tempImg
+    title_font = ImageFont.truetype(adobe, 70, encoding='utf-8')
+    bg_draw.text((470, 80), f'{ds}完成表', 'black', title_font)
+    bg_img.paste(gua_logo, (270, -10), gua_logo)
+
+    auth_font = ImageFont.truetype(adobe, 22, encoding='utf-8')
+    auth = 'Generated by Guabot\nGuagua & Linxae'
+    bg_draw.text((20, 20),
+                 f'{auth}', 'black', auth_font)
+
+    dx_img = Image.open(
+        pic_dir + 'UI_UPE_Infoicon_DeluxeMode.png').convert('RGBA')
+    dx_img = dx_img.resize((40, 11))
+
+    index = 0
+    margin_top = 200
+    margin_left = 150
+    ds_font = ImageFont.truetype(adobe, 48, encoding='utf-8')
+    cur_ds = ds_range[0]
+    # 已绘制总高度
+    cur_bg_h = 200
+    for ds_num in ds_num_list:
+        cur_row_h = int(math.ceil(ds_num/10)*80+item_margin*(ds_num/10))
+        cur_bg_h = cur_bg_h+cur_row_h+block_margin
+        if cur_bg_h > bg_h:
+            # 拼接背景
+            bg_img = contact_img(bg_img, cur_bg_h-bg_h)
+            bg_draw = ImageDraw.Draw(bg_img)
+            bg_w, bg_h = bg_img.size
+        bg_draw.text((margin_left-120, margin_top+15),
+                     f'{"%.1f" % cur_ds}', 'black', ds_font)
+        for num in range(ds_num):
+            music = music_list[index]
+            i = num % row_num
+            j = num // row_num
+            id = music.get('id')
+            # 封面
+            item = Image.open(
+                cover_dir + f'{get_cover_len4_id(id)}.jpeg').convert('RGBA')
+
+            diff = music['diff_label']
+            if diff != 'Mst':
+                # 图片添加边框
+                item = image_border(item, 'a', 20, color_dict[diff])
+            item = item.resize((item_len, item_len))
+            if music['type'] == 'DX':
+                item.paste(dx_img, (35, 0), dx_img)
+
+            # score
+            if music['achievement'] != 0:
+                score_id = trans_score_id(music['achievement'])
+                score_img = Image.open(
+                    pic_dir + f'UI_GAM_Rank_{scoreRank[score_id]}.png').convert('RGBA')
+                score_img = resizePic(score_img, 0.8)
+                w, h = score_img.size
+                item.paste(score_img, (int((item_len-w)/2),
+                           int((item_len-h)/2)), score_img)
+
+            bg_img.paste(item, (margin_left+i*(item_margin+item_len),
+                                margin_top+j*(item_margin+item_len)))
+            index = index+1
+        # 当前块行高
+        margin_top = margin_top+cur_row_h+block_margin
+        cur_ds = cur_ds + 0.1
+    return bg_img, 1
