@@ -1,14 +1,18 @@
+
 from datetime import datetime
 import threading
 import time
 import os
 from collections import defaultdict
+from tokenize import group
 
 from nonebot import on_command, on_regex
 from nonebot.typing import T_State
+from nonebot.rule import to_me
 from nonebot.adapters import Event, Bot
-from nonebot.adapters.cqhttp import Message
-from src.libraries.maimai_pic_draw_func import draw_com_list
+from nonebot.adapters.cqhttp import Message, PRIVATE, GROUP
+from nonebot.permission import Permission
+from src.libraries.maimai_pic_draw_func import draw_com_list, draw_score_list
 
 from src.libraries.tool import hash, resizePic
 from src.libraries.maimaidx_music import *
@@ -338,6 +342,10 @@ best_40_pic = on_command('瓜瓜 b40')
 
 @best_40_pic.handle()
 async def _(bot: Bot, event: Event, state: T_State):
+    # regex = "查(.+)成分"
+    # res = re.match(regex, str(event.get_message())
+    #                ).groups()[0].strip().lower()
+
     username = str(event.get_message()).strip()
     if username == "":
         payload = {'qq': str(event.get_user_id())}
@@ -358,6 +366,33 @@ async def _(bot: Bot, event: Event, state: T_State):
             }
         ]), at_sender=True)
 
+best_40_pic_cf = on_regex('查.+成分')
+
+
+@best_40_pic_cf.handle()
+async def _(bot: Bot, event: Event, state: T_State):
+    regex = "查(.+)成分"
+    res = re.match(regex, str(event.get_message())
+                   ).groups()[0].strip().lower()
+    username = res
+    if username == "":
+        await best_40_pic.send("未找到此玩家，请确保此玩家的用户名和查分器中的用户名相同。")
+    else:
+        payload = {'username': username}
+    img, success = await generate(payload)
+    if success == 400:
+        await best_40_pic.send("未找到此玩家，请确保此玩家的用户名和查分器中的用户名相同。")
+    elif success == 403:
+        await best_40_pic.send("该用户禁止了其他人获取数据。")
+    else:
+        await best_40_pic.send(Message([
+            {
+                "type": "image",
+                "data": {
+                    "file": f"base64://{str(image_to_base64(img), encoding='utf-8')}"
+                }
+            }
+        ]), at_sender=True)
 # best_50_pic = on_command('b50')
 # @best_50_pic.handle()
 # async def _(bot: Bot, event: Event, state: T_State):
@@ -578,26 +613,82 @@ async def _(bot: Bot, event: Event, state: T_State):
                 }
             }], at_sender=True)
 
-            # 登录查分器
-login = on_regex(r"查分器登录 .+ *\d?")
+    # 登录查分器
+login = on_regex(r"查分器登录 .+ *\d?", rule=to_me())
 
 
 @login.handle()
 async def _(bot: Bot, event: Event, state: T_State):
-    if event.message_type != "private":
-        await login.finish("只允许私聊登录哦")
-    else:
-        qq = str(event.get_user_id())
-        regex = "^查分器登录 (.+) *(\d)?$"
-        res = re.match(regex, str(event.get_message())).groups()
-        list = res[0].split(' ')
-        if len(list) == 2:
-            account = list[0]
-            password = list[1]
-            success = await login_prober(qq, account, password)
-            if success == -3:
-                await login.finish("用户名或密码错误")
-            else:
-                await login.finish("登陆成功，用户数据已记录")
+    # if event.message_type != "private":
+    #     await login.finish("只允许私聊登录哦")
+    # else:
+    qq = str(event.get_user_id())
+    regex = "^查分器登录 (.+) *(\d)?$"
+    res = re.match(regex, str(event.get_message())).groups()
+    list = res[0].split(' ')
+    if len(list) == 2:
+        account = list[0]
+        password = list[1]
+        success = await login_prober(qq, account, password)
+        if success == -3:
+            await login.finish("用户名或密码错误")
         else:
-            await login.finish("登录格式错误，请重新输入")
+            await login.finish("登陆成功，用户数据已记录")
+    else:
+        await login.finish("登录格式错误，请重新输入")
+
+# XX分数列表
+score_list = on_regex(r".+分数列表")
+
+
+@score_list.handle()
+async def _(bot: Bot, event: Event, state: T_State):
+    qq = str(event.get_user_id())
+    regex = "(.+)分数列表(.+)?"
+    groups = re.match(regex, str(event.get_message())
+                      ).groups()
+    ds = groups[0].strip().lower()
+    cur_page = 1
+    if groups[1] != '' and groups[1] != None:
+        cur_page = groups[1].strip().lower()
+        if not str.isdigit(cur_page):
+            await ds_list.finish('请输入正确的数字页码')
+        else:
+            cur_page = int(groups[1])
+    if ds not in ds_dict:
+        await ds_list.finish('暂时只支持8-15的分数列表查询捏')
+    else:
+        com_img, success = await draw_score_list(ds, qq, cur_page)
+        if success == 0:
+            await com_list.finish('''
+尚未录入用户信息，请私聊bot进行登录。
+私聊bot 发送如下指令：
+查分器登录 <用户名> <密码>
+'''
+                                  )
+        elif success == 1:
+            await ds_list.finish([{
+                "type": "image",
+                "data": {
+                        "file": f"base64://{str(image_to_base64(com_img), encoding='utf-8')}"
+                }
+            }], at_sender=True)
+        elif success == 233:
+            await ds_list.finish([{
+                "type": "text",
+                "data": {
+                    "text": "超过最大页码限制，默认显示第一页"
+                }
+            }, {
+                "type": "image",
+                "data": {
+                        "file": f"base64://{str(image_to_base64(com_img), encoding='utf-8')}"
+                }
+            }], at_sender=True)
+        elif success == -1:
+            await ds_list.finish([{
+                "type": "text",
+                "data": {
+                    "text": "你在该难度暂时没有游玩记录捏"
+                }
+            }], at_sender=True)

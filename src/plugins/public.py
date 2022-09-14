@@ -7,6 +7,7 @@ import os
 import random
 import re
 import imghdr
+import traceback
 from typing import Optional
 import urllib.request
 from PIL import Image
@@ -86,15 +87,63 @@ help = on_command('瓜瓜 help', aliases={'help'})
 @help.handle()
 async def _(bot: Bot, event: Event, state: T_State):
     help_str = '''可用命令如下：
-今日舞萌 查看今天的舞萌运势
+今日舞萌/今日运势 查看今天的舞萌运势
 XXXmaimaiXXX什么 随机一首歌
 随个[dx/标准][绿黄红紫白]<难度> 随机一首指定条件的乐曲
 查歌<乐曲标题的一部分> 查询符合条件的乐曲
 [绿黄红紫白]id<歌曲编号> 查询乐曲信息或谱面信息
-<歌曲别名>是什么歌 查询乐曲别名对应的乐曲
 定数查歌 <定数>  查询定数对应的乐曲
 定数查歌 <定数下限> <定数上限>
-分数线 <难度+歌曲id> <分数线> 详情请输入“分数线 帮助”查看'''
+分数线 <难度+歌曲id> <分数线> 详情请输入“分数线 帮助”查看
+
+瓜瓜 b40 / 查<用户名>成分 查看b40
+例：查Linxae成分
+
+瓜瓜 底分分析 查看乐曲推荐和底分分析
+例：瓜瓜 底分分析
+
+<歌曲别名>是什么歌 查询乐曲别名对应的乐曲
+例：太空熊是什么歌
+
+<歌曲别名>有什么别名 查询乐曲的其它别名
+例：太空熊有什么别名
+
+添加别名 <歌曲id> <歌曲别名> 为指定id的歌曲添加别名
+例：添加别名 114514 田所浩二
+
+<标级>定数表 查看某标级定数表（仅支持8-15）
+例：14+定数表
+
+<标级>完成表 查看某标级rank完成表（仅支持8-15）需登录查分器后使用
+例：14+完成表
+
+<标级>分数列表 (页号) 查看某标级分数列表（仅支持8-15）需登录查分器后使用
+例：13分数列表 / 14+分数列表 
+
+查分器登录 <查分器账号> <查分器密码> （仅支持8-15）登录查分器用于后续使用
+例：查分器登录 123 456
+
+----------------------娱乐相关----------------------
+
+瓜瓜 来点龙 / 来点龙图 / /dragon 随个龙 随机一张龙图
+例：瓜瓜 来点龙
+
+瓜瓜 来点fu / 来点fufu / /fufu 随个fu 随机一张fufu
+例：瓜瓜 来点fu
+
+群友圣经 随机一份群友圣经
+例：群友圣经
+
+瓜瓜 添加圣经 <需添加内容> 为本群添加圣经
+例：瓜瓜 添加圣经 哦哦哦哦哦哦 / 一张图片
+
+----------------------疫情相关----------------------
+
+疫情动态 <市名/国内> 查看某市或者国内疫情动态
+例：疫情动态 成都
+
+风险区 <市名> <区名/关键字>(可选) 查看某地区风险区列表
+例：风险区 成都 新都/风险区 成都/风险区 成都 旭辉'''
     await help.send(Message([{
         "type": "image",
         "data": {
@@ -128,7 +177,7 @@ sb_records = on_command('群友圣经', aliases={'来点圣经'})
 
 @sb_records.handle()
 async def _(bot: Bot, event: Event, state: T_State):
-    # group_id = event.get_session_id().split('_')[1]
+    group_id = event.get_session_id().split('_')[1]
     f = open('src/static/friends_sb_records.csv', 'r', encoding='utf-8')
     temp = f.readlines()
     f.close()
@@ -146,10 +195,10 @@ async def _(bot: Bot, event: Event, state: T_State):
             else:
                 print('长度不对啊这')
         res_list.append(item)
-    # 随机选择一条
-    # for res in res_list:
-    #     if res['group_id'] != group_id:
-    #         res_list.remove(res)
+
+    for res in res_list:
+        if res['group_id'] != group_id:
+            res_list.remove(res)
     if len(res_list) == 0:
         await sb_records.finish(
             '''
@@ -159,6 +208,8 @@ async def _(bot: Bot, event: Event, state: T_State):
 瓜瓜 添加圣经
 在bot回复后发送<文字/图片>
 ''')
+    # 随机选择一条
+    random.shuffle(res_list)
     choice = random.choice(res_list)
     img_path = 'S:\\CodeField\\Guabot\\src\\static\\friends\\'
     if 'file-img' not in choice['context']:
@@ -191,7 +242,7 @@ def add_to_folder(url):
     os.remove(os.path.join(f'{filepath}temp.jpg'))
     # 创建原文件
     createFile(url, f'{filepath}file-img-{file_time}.{img_type}')
-
+    return img_type, file_time
 
 # 添加到csv
 
@@ -201,6 +252,7 @@ def add_to_csv(group_id, time, adder, context):
                 'a', encoding='utf-8', newline='')
     wf = csv.writer(file, delimiter=' ')
     wf.writerow([group_id, time, adder, context])
+    file.close()
 
 
 add_record = on_command('瓜瓜 添加圣经')
@@ -219,23 +271,26 @@ async def _(bot: Bot, event: Event, state: T_State):
 
 @add_record.got("context", prompt="请发送要添加的文本或图片")
 async def arg_handle(bot: Bot, event: Event, state: T_State):
-    # group_id = event.get_session_id().split('_')[1]
-    group_id = 702611663
+    group_id = event.get_session_id().split('_')[1]
+    # group_id = 702611663
     current_time = get_current_time()
-    if 'CQ:image' in state["context"]:
-        pattern = re.compile(r'http.+')
-        res = f'{state["context"]}'
-        # 图片请求ur
-        url = pattern.search(res).group()[:-1]
-        # 将参数存入state以阻止后续再向用户询问参数
-        state["context"] = url  # 如果用户发送了参数则直接赋值
-        img_type, file_time = add_to_folder(state["context"])
-        add_to_csv(group_id, current_time,
-                   event.get_user_id(), f'file-img-{file_time}.{img_type}')
-        await add_record.finish("圣经已添加")
-    else:
-        context = state["context"]
-        context = f'"{context}"'
-        add_to_csv(group_id, current_time,
-                   event.get_user_id(), context)
-        await add_record.finish("圣经已添加")
+    try:
+        if 'CQ:image' in state["context"]:
+            pattern = re.compile(r'http.+')
+            res = f'{state["context"]}'
+            # 图片请求ur
+            url = pattern.search(res).group()[:-1]
+            # 将参数存入state以阻止后续再向用户询问参数
+            state["context"] = url  # 如果用户发送了参数则直接赋值
+            img_type, file_time = add_to_folder(state["context"])
+            add_to_csv(group_id, current_time,
+                       event.get_user_id(), f'file-img-{file_time}.{img_type}')
+            await add_record.finish("圣经已添加")
+        else:
+            context = state["context"]
+            context = f'"{context}"'
+            add_to_csv(group_id, current_time,
+                       event.get_user_id(), context)
+            await add_record.finish("圣经已添加")
+    except IOError as e:
+        await add_record.finish("发生未知错误,请联系bot管理员")

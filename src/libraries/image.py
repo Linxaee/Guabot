@@ -28,6 +28,7 @@ def text_to_image(text):
     padding = 10
     margin = 4
     text_list = text.split('\n')
+    print()
     max_width = 0
     for text in text_list:
         w, h = font.getsize(text)

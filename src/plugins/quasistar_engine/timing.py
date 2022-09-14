@@ -44,7 +44,7 @@ async def update_daily_data():
     write_today_events()
 
 
-@timing.scheduled_job('cron', hour=12, minute=0, id='update_daily_data')
+@timing.scheduled_job('cron', hour=12, minute=0, id='update_COVID_data')
 async def update_COVID_data():
     # 风险区数据
     get_level_data()

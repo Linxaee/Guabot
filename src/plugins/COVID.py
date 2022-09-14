@@ -79,22 +79,22 @@ async def _(bot: Bot, event: Event, state: T_State):
         subName = temp[1]
     if name in ['北京', '天津', '上海', '重庆']:
         city = city_data.by_prov_name(name)
-        subCity = city['subCity']
-        dangerousAreas = {}
-        subList = []
-        for item in subCity:
-            dangerousAreas = item['dangerousAreas']
-            for item in dangerousAreas['subList']:
-                if item['level'] == '高风险':
-                    subList.append(item)
-        for item in subCity:
-            for item in dangerousAreas['subList']:
-                if item['level'] == '中风险':
-                    subList.append(item)
-        # 排序不知道咋比较level用不了，他妈的气死我了
-        # dangerousAreas['subList'] = sorted(subList, key=cmp_to_key(comp))
-        dangerousAreas['subList'] = subList
-        city['dangerousAreas'] = dangerousAreas
+        # subCity = city['subCity']
+        # dangerousAreas = {}
+        # subList = []
+        # for item in subCity:
+        #     dangerousAreas = item['dangerousAreas']
+        #     for item in dangerousAreas['subList']:
+        #         if item['level'] == '高风险':
+        #             subList.append(item)
+        # for item in subCity:
+        #     for item in dangerousAreas['subList']:
+        #         if item['level'] == '中风险':
+        #             subList.append(item)
+        # # 排序不知道咋比较level用不了，他妈的气死我了
+        # # dangerousAreas['subList'] = sorted(subList, key=cmp_to_key(comp))
+        # dangerousAreas['subList'] = subList
+        # city['dangerousAreas'] = dangerousAreas
         city['city_name'] = city['prov_name']
     else:
         city = city_data.by_subCity_name(name)

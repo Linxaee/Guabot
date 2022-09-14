@@ -1,5 +1,4 @@
 from asyncio.windows_events import NULL
-from importlib.metadata import version
 import os
 import math
 import random
@@ -233,7 +232,6 @@ class BestList(object):
 
 
 # 绘制底分分析
-
 async def draw_recommend_pic(payload: Dict):
     async with aiohttp.request("POST", "https://www.diving-fish.com/api/maimaidxprober/query/player", json=payload) as resp:
         if resp.status == 400:
@@ -849,23 +847,24 @@ color_dict = {
     "ReM": (226, 209, 240),
 }
 
-# 绘制定数表
+# 绘制完成表
+
+
+def inner_level_q(ds1, ds2=None):
+    result_set = []
+    diff_label = ['Bas', 'Adv', 'Exp', 'Mst', 'ReM']
+    if ds2 is not None:
+        music_data = total_list.filter(ds=(ds1, ds2))
+    else:
+        music_data = total_list.filter(ds=ds1)
+    for music in sorted(music_data, key=lambda i: int(i['id'])):
+        for i in music.diff:
+            result_set.append(
+                {"id": music['id'], "title": music['title'], "ds": music['ds'][i], "diff_label": diff_label[i], "diff_index": i, "level": music['level'][i], "type": music['type'], "achievement": 0})
+    return result_set
 
 
 async def draw_com_list(ds: str, qq: str):
-
-    def inner_level_q(ds1, ds2=None):
-        result_set = []
-        diff_label = ['Bas', 'Adv', 'Exp', 'Mst', 'ReM']
-        if ds2 is not None:
-            music_data = total_list.filter(ds=(ds1, ds2))
-        else:
-            music_data = total_list.filter(ds=ds1)
-        for music in sorted(music_data, key=lambda i: int(i['id'])):
-            for i in music.diff:
-                result_set.append(
-                    {"id": music['id'], "title": music['title'], "ds": music['ds'][i], "diff_label": diff_label[i], "diff_index": i, "level": music['level'][i], "type": music['type'], "achievement": 0})
-        return result_set
 
     def contact_img(src_img, len):
         pic_dir = 'src/static/mai/pic/'
@@ -899,7 +898,7 @@ async def draw_com_list(ds: str, qq: str):
     # 筛出范围内的乐曲
     music_list = inner_level_q(ds_range[0], ds_range[1])
     # 按定数排序
-    music_list = sorted(music_list, key=lambda i: i['ds'])
+    music_list = sorted(music_list, key=lambda i: i['ds'], reverse=True)
     for music in music_list:
         for com_music in com_list:
             if int(music['id']) == com_music['song_id'] and music['diff_index'] == com_music['level_index']:
@@ -907,7 +906,7 @@ async def draw_com_list(ds: str, qq: str):
     # 计算出每种定数各有多少个
     ds_num_list = []
     count = 0
-    cur_ds = ds_range[0]
+    cur_ds = ds_range[1]
     for i in range(len(music_list)):
         music = music_list[i]
         if cur_ds == music['ds']:
@@ -958,7 +957,7 @@ async def draw_com_list(ds: str, qq: str):
     margin_top = 200
     margin_left = 150
     ds_font = ImageFont.truetype(adobe, 48, encoding='utf-8')
-    cur_ds = ds_range[0]
+    cur_ds = ds_range[1]
     # 已绘制总高度
     cur_bg_h = 200
     for ds_num in ds_num_list:
@@ -983,7 +982,7 @@ async def draw_com_list(ds: str, qq: str):
             diff = music['diff_label']
             if diff != 'Mst':
                 # 图片添加边框
-                item = image_border(item, 'a', 20, color_dict[diff])
+                item = image_border(item, 'a', 40, color_dict[diff])
             item = item.resize((item_len, item_len))
             if music['type'] == 'DX':
                 item.paste(dx_img, (35, 0), dx_img)
@@ -1003,5 +1002,117 @@ async def draw_com_list(ds: str, qq: str):
             index = index+1
         # 当前块行高
         margin_top = margin_top+cur_row_h+block_margin
-        cur_ds = cur_ds + 0.1
+        cur_ds = cur_ds - 0.1
     return bg_img, 1
+
+diff_dict = ["Bas",
+             "Adv",
+             "Exp",
+             "Mst",
+             "ReM"]
+
+
+async def draw_score_list(ds: str, qq: str, cur_page: int):
+    ds_dict_score = {
+        "15": [15.0, 15.0],
+        "14+": [14.7, 14.9],
+        "14": [14.0, 14.6],
+        "13+": [13.7, 13.9],
+        "13": [13.0, 13.6],
+        "12+": [12.7, 12.9],
+        "12": [12.0, 12.6],
+        "11+": [11.7, 11.9],
+        "11": [11.0, 11.6],
+        "10+": [10.7, 10.9],
+        "10": [10.0, 10.6],
+        "9+": [9.7, 9.9],
+        "9": [9.0, 9.6],
+        "8+": [8.7, 8.9],
+        "8": [8.0, 8.6],
+    }
+
+    records, success = await get_user_data(qq)
+    if success == 0:
+        return None, 0
+    ds_range = ds_dict_score[ds]
+    score_list = []
+    for item in records:
+        if item['ds'] >= ds_range[0] and item['ds'] <= ds_range[1]:
+            score_list.append(item)
+
+    if len(score_list) == 0:
+        return None, -1
+    # 按定数排序
+    score_list = sorted(
+        score_list, key=lambda i: i['achievements'], reverse=True)
+
+    total_num = len(score_list)
+    page_num = 25
+    total_page = math.ceil(total_num / page_num)
+    total_page = total_page if total_page > 0 else 1
+    # 判断是否越界
+    flag = 0
+    if cur_page > total_page:
+        cur_page = 1
+        # 233为页越界
+        flag = 233
+    score_list = score_list[(cur_page-1)*page_num:cur_page*page_num]
+
+    adobe = 'src/static/adobe_simhei.otf'
+    font = ImageFont.truetype(adobe, 20, encoding='UTF-8')
+    max_w = 0
+    # 遍历确认最长宽度
+    for i in range(0, len(score_list)):
+        record = score_list[i]
+        title = record['title']
+        level_index = record["level_index"]
+        achievements = record["achievements"]
+        type = record["type"]
+        if record['fc'] != '':
+            if record['fc'] == 'app':
+                fc = 'ap+'
+            elif record['fc'] == 'fcp':
+                fc = 'fc+'
+            else:
+                fc = record['fc']
+            record['title'] = record['title']+f'({fc})'
+        if record['fs'] != '':
+            if record['fs'] == 'fsp':
+                fs = 'fs+'
+            else:
+                fs = record['fs']
+            record['title'] = record['title']+f'({fs})'
+        text = f'{achievements:.4f}% ({type}) ({diff_dict[level_index]}){title}'
+        size = font.getsize(text)
+        if size[0] > max_w:
+            max_w = size[0]
+    # 空白背景
+    imgH = 850
+    imgW = max(max_w+20, 530)
+    baseImg = Image.new('RGB', (imgW, imgH), (255, 255, 255))
+    baseDraw = ImageDraw.Draw(baseImg)
+
+    # 绘制title
+    title = f'你的{ds}分数列表如下:'
+    baseDraw.text((10, 10), title, 'black', font)
+
+    # 绘制主体
+    for i in range(0, len(score_list)):
+        record = score_list[i]
+        title = record['title']
+        level_index = record["level_index"]
+        achievements = record["achievements"]
+        type = record["type"]
+        text = f'{achievements:.4f}% ({type}) ({diff_dict[level_index]}){title}'
+        baseDraw.text((10, i*30+40), text, 'black', font)
+
+    # 绘制footer
+    font = ImageFont.truetype('simhei', 22, encoding='UTF-8')
+    footer = f'{cur_page}/{total_page}页 {page_num}项每页 generated by Guabot & Linxae\n'
+    baseDraw.text((10, imgH-60), footer, 'black', font)
+    font = ImageFont.truetype('simhei', 16, encoding='UTF-8')
+    baseDraw.text((10, imgH-35), 'xx分数列表 页号 即可翻页', 'black', font)
+    if flag == 233:
+        return baseImg, 233
+    else:
+        return baseImg, 1
