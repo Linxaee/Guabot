@@ -7,13 +7,15 @@
 
 详细可参考[mai-bot](https://github.com/Diving-Fish/mai-bot)开源项目
 
-通过(指定清华镜像源)
+1. 下载static文件夹并放置根目录src下，[下载链接](https://www.aliyundrive.com/s/oh8E7GfQtD3)，提取码 g1e9
+
+2. 通过(指定清华镜像源)
 
 ```
 pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
 ```
 
-安装依赖，随后运行
+3. 安装依赖，随后运行
 
 ```
 python bot.py
@@ -211,6 +213,13 @@ bug有点多，测试修改ing
 
 例：风险区 成都 新都 / 风险区 成都 / 风险区 成都 2
 
+### 更新说明
+
+-----------
+
+##### 2022-9-15
+
+1. 想写的都写完了，以后再补充
 
 
 ### 鸣谢
@@ -218,8 +227,4 @@ bug有点多，测试修改ing
 -------------
 
 感谢 [Diving-Fish](https://github.com/Diving-Fish) 提供的源码支持
-
-
-
-
 
