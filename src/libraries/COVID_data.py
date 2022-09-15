@@ -1,18 +1,9 @@
 from asyncio.windows_events import NULL
 import time
-from typing import Dict, List, Optional, Union, Tuple, Any
-from PIL import Image, ImageDraw, ImageFont, ImageFilter
-import numpy as np  # 导入必要的库函数
-import pandas as pd
+from typing import List
 import re
-import matplotlib
-import matplotlib.pyplot as plt
-from matplotlib.ticker import MaxNLocator
 import requests
 import json
-from pyecharts.charts import Map, Geo
-import hashlib
-from typing import Optional
 import requests
 
 

@@ -1,16 +1,7 @@
 from asyncio.windows_events import NULL
-from email.mime import base, image
-from email.policy import default
 import math
 from typing import Optional
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
-import numpy as np  # 导入必要的库函数
-import pandas as pd
-import re
-import matplotlib
-import matplotlib.pyplot as plt
-from matplotlib.ticker import MaxNLocator
-from pyecharts.charts import Map, Geo
 from src.libraries.COVID_data import cityList, get_data, get_level_list
 from src.libraries.image import resizePic, circle_corner
 

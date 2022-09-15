@@ -1,14 +1,9 @@
-import ast
-import threading
 from asyncio.windows_events import NULL
 import csv
-from multiprocessing import current_process
 import os
 import random
 import re
 import imghdr
-import traceback
-from typing import Optional
 import urllib.request
 from PIL import Image
 from nonebot import on_command, on_message, on_notice, require, get_driver, on_regex
@@ -19,7 +14,6 @@ from nonebot.message import event_preprocessor
 from nonebot.matcher import Matcher
 from src.libraries.image import *
 from src.libraries.tool import *
-from random import randint
 
 
 def record_txt(dict, flag, img=NULL):
@@ -81,7 +75,7 @@ async def preprocessor(bot, event, state):
         raise IgnoredException("not reply group temp message")
 
 
-help = on_command('瓜瓜 help', aliases={'help'})
+help = on_command('瓜瓜 help', aliases={'/help'})
 
 
 @help.handle()

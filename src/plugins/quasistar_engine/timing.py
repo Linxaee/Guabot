@@ -3,8 +3,6 @@ import time
 import requests
 from nonebot import on_command, require, get_driver, get_bots
 from nonebot.adapters.cqhttp import MessageSegment
-import asyncio
-import os
 from random import randint
 
 from src.libraries.COVID_data import get_level_data
@@ -23,9 +21,8 @@ __plugin_usage__ = '用法：在规定时间触发发送的信息。'
 # 设置一个定时器
 timing = require("nonebot_plugin_apscheduler").scheduler
 
+
 # 12点更新日更数据
-
-
 def write_today_events():
     url = 'http://v.juhe.cn/todayOnhistory/queryEvent.php'
     key = '488593dc256349e8f06f5d3d13614a6a'
@@ -61,3 +58,6 @@ async def update_COVID_data():
     #     group_id=12345678,
     #     message='这是一条群聊信息' + send_img('三点饮茶.gif')
     # )
+
+get_level_data()
+write_today_events()

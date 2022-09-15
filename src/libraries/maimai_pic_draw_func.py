@@ -4,8 +4,6 @@ import math
 import random
 from typing import Optional, Dict, List
 
-import requests
-from urllib import request
 import aiohttp
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
 from src.libraries.maimaidx_music import *

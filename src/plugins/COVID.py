@@ -1,15 +1,4 @@
-from asyncio.windows_events import NULL
 import re
-import numpy as np  # 导入必要的库函数
-import pandas as pd
-import matplotlib
-import matplotlib.pyplot as plt
-from matplotlib.ticker import MaxNLocator
-import requests
-import json
-from pyecharts.charts import Map, Geo
-from PIL import Image
-
 from nonebot import on_command, on_regex
 from nonebot.typing import T_State
 from nonebot.adapters import Event, Bot

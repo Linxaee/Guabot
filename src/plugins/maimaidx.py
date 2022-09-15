@@ -1,17 +1,10 @@
-
-from datetime import datetime
-import threading
-import time
-import os
 from collections import defaultdict
-from tokenize import group
 
 from nonebot import on_command, on_regex
 from nonebot.typing import T_State
 from nonebot.rule import to_me
 from nonebot.adapters import Event, Bot
-from nonebot.adapters.cqhttp import Message, PRIVATE, GROUP
-from nonebot.permission import Permission
+from nonebot.adapters.cqhttp import Message
 from src.libraries.maimai_pic_draw_func import draw_com_list, draw_score_list
 
 from src.libraries.tool import hash, resizePic
