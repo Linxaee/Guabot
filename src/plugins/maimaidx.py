@@ -5,7 +5,8 @@ from nonebot.typing import T_State
 from nonebot.rule import to_me
 from nonebot.adapters import Event, Bot
 from nonebot.adapters.cqhttp import Message
-from src.libraries.maimai_pic_draw_func import draw_com_list, draw_score_list
+from nonebot.matcher import Matcher
+from src.libraries.maimai_pic_draw_func import create_plate_text, draw_com_list, draw_plate_img, draw_score_list, get_plate_ach
 
 from src.libraries.tool import hash, resizePic
 from src.libraries.maimaidx_music import *
@@ -578,7 +579,7 @@ async def _(bot: Bot, event: Event, state: T_State):
         }])
 
 # xx完成表
-com_list = on_regex(r".+完成表")
+com_list = on_regex(r".+完成表", priority=5)
 
 
 @com_list.handle()
@@ -685,3 +686,72 @@ async def _(bot: Bot, event: Event, state: T_State):
                     "text": "你在该难度暂时没有游玩记录捏"
                 }
             }], at_sender=True)
+
+
+# xx牌子完成表
+plate_com_list = on_regex(
+    r"([真超檄橙暁晓桃櫻樱紫菫堇白雪輝辉舞熊華华爽煌霸])([极将者神舞]{1,2})完成表", priority=1)
+
+
+@plate_com_list.handle()
+async def _(bot: Bot, event: Event, state: T_State, matcher: Matcher):
+    regex = '([真超檄橙暁晓桃櫻樱紫菫堇白雪輝辉舞熊華华爽煌霸])([极将者神舞]{1,2})'
+    match = re.match(regex, str(event.get_message())).groups()
+    prefix = match[0]
+    prefix = '舞' if match[0] == '霸' else prefix
+    suffix = match[1]
+    if len(suffix) == 2:
+        if suffix != '舞舞':
+            await plate_com_list.finish('暂时没有这种牌子捏')
+    full_name = f'{prefix}{suffix}'
+    if full_name in ['真将']:
+        await plate_com_list.finish('暂时没有这种牌子捏')
+    if prefix in ['霸', '舞']:
+        await plate_com_list.finish('跑霸和舞你是想累死我吗.jpg')
+    music_list, success = await get_plate_ach(match, prefix, str(event.get_user_id()))
+    if success == 0:
+        await com_list.finish('''(先加bot好友)
+尚未录入用户信息，请私聊bot进行登录。
+私聊bot 发送如下指令：
+查分器登录 <用户名> <密码>
+'''
+                              )
+    elif success == 1:
+        img = await draw_plate_img(match, music_list)
+        await ds_list.finish([{
+            "type": "image",
+            "data": {
+                    "file": f"base64://{str(image_to_base64(img), encoding='utf-8')}"
+            }
+        }], at_sender=True)
+    matcher.stop_propagation()
+
+# xx牌子进度
+plate_progress_list = on_regex(
+    r"([真超檄橙暁晓桃櫻樱紫菫堇白雪輝辉舞熊華华爽煌霸])([极将者神舞]{1,2})进度", priority=1)
+
+
+@plate_progress_list.handle()
+async def _(bot: Bot, event: Event, state: T_State, matcher: Matcher):
+    regex = '([真超檄橙暁晓桃櫻樱紫菫堇白雪輝辉舞熊華华爽煌霸])([极将者神舞]{1,2})进度'
+    match = re.match(regex, str(event.get_message())).groups()
+    prefix = match[0]
+    prefix = '舞' if match[0] == '霸' else prefix
+    suffix = match[1]
+    if len(suffix) == 2:
+        if suffix != '舞舞':
+            await plate_com_list.finish('暂时没有这种牌子捏')
+    full_name = f'{prefix}{suffix}'
+    if full_name in ['真将', '霸者', '霸极', '霸将', '霸神']:
+        await plate_com_list.finish('暂时没有这种牌子捏')
+    music_list, success = await get_plate_ach(match, prefix, str(event.get_user_id()))
+    if success == 0:
+        await plate_progress_list.finish('''(先加bot好友)
+尚未录入用户信息，请私聊bot进行登录。
+私聊bot 发送如下指令：
+查分器登录 <用户名> <密码>
+'''
+                                         )
+    elif success == 1:
+        message = await create_plate_text(match, music_list)
+        await plate_progress_list.finish(message)

@@ -1114,3 +1114,481 @@ async def draw_score_list(ds: str, qq: str, cur_page: int):
         return baseImg, 233
     else:
         return baseImg, 1
+
+
+# 绘制牌子相关
+
+plate_version = {
+    '真': ['maimai', 'maimai PLUS'],
+    '超': ['maimai GreeN'],
+    '檄': ['maimai GreeN PLUS'],
+    '橙': ['maimai ORANGE'],
+    '暁': ['maimai ORANGE PLUS'],
+    '晓': ['maimai ORANGE PLUS'],
+    '桃': ['maimai PiNK'],
+    '櫻': ['maimai PiNK PLUS'],
+    '樱': ['maimai PiNK PLUS'],
+    '紫': ['maimai MURASAKi'],
+    '菫': ['maimai MURASAKi PLUS'],
+    '堇': ['maimai MURASAKi PLUS'],
+    '白': ['maimai MiLK'],
+    '雪': ['MiLK PLUS'],
+    '輝': ['maimai FiNALE'],
+    '辉': ['maimai FiNALE'],
+    '舞': ['maimai', 'maimai PLUS', 'maimai GreeN', 'maimai GreeN PLUS',
+          'maimai ORANGE', 'maimai ORANGE PLUS', 'maimai PiNK', 'maimai PiNK PLUS',
+          'maimai MURASAKi', 'maimai MURASAKi PLUS', 'maimai MiLK', 'MiLK PLUS', 'maimai FiNALE'],
+    '熊': ['maimai でらっくす'],
+    '華': ['maimai でらっくす'],
+    '华': ['maimai でらっくす'],
+    # '華': 'maimai でらっくす PLUS',
+    # '华': 'maimai でらっくす PLUS',
+    '爽': ['maimai でらっくす Splash'],
+    '煌': ['maimai でらっくす Splash'],
+    # '煌': 'maimai でらっくす Splash PLUS',
+}
+
+plate_pic_index = {
+    '真': ['006101', '006102', '006103'],
+    '超': ['006104', '006105', '006106', '006107'],
+    '檄': ['006108', '006109', '006110', '006111'],
+    '橙': ['006112', '006113', '006114', '006115'],
+    '暁': ['006116', '006117', '006118', '006119'],
+    '晓': ['006116', '006117', '006118', '006119'],
+    '桃': ['006120', '006121', '006122', '006123'],
+    '櫻': ['006124', '006125', '006126', '006127'],
+    '樱': ['006124', '006125', '006126', '006127'],
+    '紫': ['006128', '006129', '006130', '006131'],
+    '菫': ['006132', '006133', '006134', '006135'],
+    '堇': ['006132', '006133', '006134', '006135'],
+    '白': ['006136', '006137', '006138', '006139'],
+    '雪': ['006140', '006141', '006142', '006143'],
+    '輝': ['006144', '006145', '006146', '006147'],
+    '辉': ['006144', '006145', '006146', '006147'],
+    '舞': ['006149', '006150', '006151', '006152', '006148'],
+    '熊': ['055101', '055102', '055103', '055104'],
+    '華': ['109101', '109102', '109103', '109104'],
+    '华': ['109101', '109102', '109103', '109104'],
+    # '華': 'maimai でらっくす PLUS',
+    # '华': 'maimai でらっくす PLUS',
+    '爽': ['159101', '159102', '159103', '159104'],
+    '煌': ['209101', '209102', '209103', '209104'],
+    # '煌': 'maimai でらっくす Splash PLUS',
+}
+
+plate_index = {
+    '者': 4,
+    '极': 0,
+    '将': 1,
+    '神': 2,
+    '舞舞': 3
+}
+
+
+# 处理完成的图片
+def handel_finish_img(img):
+    pic_dir = 'src/static/mai/pic/'
+    # gou
+    gou_img = Image.open(pic_dir+'对勾2.jpeg')
+    img_w, img_h = img.size
+    gou_img = gou_img.resize((img_w+35, img_h+35))
+    mask = Image.new('RGBA', (img_w, img_h), 'black')
+    label = Image.blend(img, mask, 0.3)
+    label.paste(gou_img, (-17, -17), gou_img)
+    return label
+# 获取对应版本曲子记录信息
+
+
+async def get_plate_ach(match, plate: str, qq: str):
+    with open('src/static/mai/plate/plate_dict.json', 'r') as f:
+        plate_dict = json.load(f)
+        f.close()
+    records, success = await get_user_data(qq)
+    if success == 0:
+        return None, 0
+    music_list = []
+    plate = '舞' if match[0] == '霸' else plate
+    # 遍历当前版本需要打的乐曲
+    for music in plate_dict[plate]['music_list']:
+        # print(music)
+        flag = False
+        # 遍历玩家记录
+        for item in records:
+            # print(item)
+            if str(item['song_id']) == str(music['song_id']) and item['level_index'] == music['level_index']:
+                # print_to_json(item)
+                music_list.append(
+                    {"id": item['song_id'], "title": music['title'], "ds": music['ds'], "level_index": item['level_index'], "level": item['level'],
+                     "achievements": item['achievements'], "fc": item['fc'], "fs": item['fs'], 'rate': item['rate']})
+                flag = True
+        if not flag:
+            music_list.append(
+                {"id": int(music['song_id']), "title": music['title'], "ds": music['ds'], "level_index": music['level_index'], "level": music['level'],
+                 "achievements": 0, "fc": '', "fs": '', 'rate': ''})
+            flag = False
+    return music_list, 1
+
+
+async def draw_plate_img(match, music_list):
+    def contact_img(src_img, len):
+        pic_dir = 'src/static/mai/pic/'
+        bg_img = Image.open(
+            pic_dir + 'UI_UNL_BG.png').convert('RGBA')
+        src_w, src_h = src_img.size
+        bg_w, bg_h = bg_img.size
+        # 生成等长白布
+        temp_img = Image.new('RGB', (src_w, src_h+len), (255, 255, 255))
+        box = (0, 0, bg_w, len)
+        bg_img = bg_img.crop(box)
+        temp_img.paste(src_img, (0, 0))
+        temp_img.paste(bg_img, (0, src_h))
+        if len > bg_h:
+            diff = len-bg_h
+            temp_img.paste(bg_img, (0, src_h+diff))
+        return temp_img
+
+    temp_list = []
+    for item in music_list:
+        if item['level_index'] in [3, 4]:
+            temp_list.append(item)
+    # 获取前缀后缀并处理真系和霸者特殊情况
+    full_name = f'{match[0]}{match[1]}'
+    prefix = match[0]
+    prefix = '舞' if match[0] == '霸' else prefix
+    suffix = match[1]
+    index = plate_index[suffix]
+    index_list = plate_pic_index[prefix]
+    if prefix == '真':
+        if suffix == '神':
+            index = 1
+        elif suffix == '舞舞':
+            index = 2
+
+    # 获取牌子图片
+    plate_dir = 'src/static/mai/plate/img/'
+    plate_img = Image.open(plate_dir+f'UI_Plate_{index_list[index]}.png')
+    plate_img_w, plate_img_h = plate_img.size
+    # 剪裁至只剩右半部分
+    box = (420, 10, plate_img_w-20, plate_img_h-10)
+    plate_img = plate_img.crop(box)
+    resizePic(plate_img, 0.6)
+
+    # 背景图片
+    pic_dir = 'src/static/mai/pic/'
+    cover_dir = 'src/static/mai/cover/'
+    bg_img = Image.open(
+        pic_dir + 'UI_UNL_BG.png').convert('RGBA')
+    bg_draw = ImageDraw.Draw(bg_img)
+
+    # 字体
+    adobe = 'src/static/adobe_simhei.otf'
+    mft = 'src/static/msyh.ttc'
+
+    # sss
+    sss_img = resizePic(Image.open(pic_dir+'UI_GAM_Rank_SSS.png'), 0.8)
+    sssp_img = resizePic(Image.open(pic_dir+'UI_GAM_Rank_SSSp.png'), 0.8)
+    # fc
+    fc_img = resizePic(Image.open(pic_dir+'UI_MSS_MBase_Icon_FC.png'), 1.2)
+    fcp_img = resizePic(Image.open(pic_dir+'UI_MSS_MBase_Icon_FCp.png'), 1.2)
+    # ap
+    ap_img = resizePic(Image.open(pic_dir+'UI_MSS_MBase_Icon_AP.png'), 1.2)
+    app_img = resizePic(Image.open(pic_dir+'UI_MSS_MBase_Icon_APp.png'), 1.2)
+    # fsp
+    fs_img = resizePic(Image.open(pic_dir+'UI_MSS_MBase_Icon_fs.png'), 1.2)
+    fsp_img = resizePic(Image.open(
+        pic_dir+'UI_MSS_MBase_Icon_fsp.png'), 1.2)
+
+    bg_w, bg_h = bg_img.size
+    # print(bg_h)
+    # 板块间隔
+    block_margin = 30
+    # 单体间隔
+    item_margin = 15
+    # 每行个数
+    row_num = 10
+    # 单个封面大小
+    item_len = 75
+
+    title_font = ImageFont.truetype(adobe, 70, encoding='utf-8')
+    bg_draw.text((650, 100), '完成表', 'black', title_font)
+    bg_img.paste(plate_img, (350, 90), plate_img)
+
+    auth_font = ImageFont.truetype(adobe, 22, encoding='utf-8')
+    auth = 'Generated by Guabot\nGuagua & Linxae'
+    bg_draw.text((20, 20),
+                 f'{auth}', 'black', auth_font)
+
+    index = 0
+    margin_top = 250
+    margin_left = 150
+    ds_font = ImageFont.truetype(adobe, 48, encoding='utf-8')
+
+    temp_list = sorted(temp_list, key=lambda x: x['level'], reverse=True)
+    # 计算出每种定数各有多少个
+    ds_num_list = []
+    ds_list = []
+    count = 0
+    cur_ds = temp_list[0]['level']
+    for i in range(len(temp_list)):
+        ds = temp_list[i]['level']
+        if cur_ds == ds:
+            count = count + 1
+        else:
+            ds_num_list.append(count)
+            ds_list.append(cur_ds)
+            count = 1
+            cur_ds = ds
+        if i == len(temp_list)-1:
+            ds_num_list.append(count)
+            ds_list.append(cur_ds)
+            count = 1
+    ds_index = 0
+    cur_ds = ds_list[ds_index]
+    # 已绘制总高度
+    cur_bg_h = 250
+    for ds_num in ds_num_list:
+        cur_row_h = int(math.ceil(ds_num/10)*80+item_margin*(ds_num/10))
+        cur_bg_h = cur_bg_h+cur_row_h+block_margin
+        if cur_bg_h > bg_h:
+            # 拼接背景
+            bg_img = contact_img(bg_img, cur_bg_h-bg_h)
+            bg_draw = ImageDraw.Draw(bg_img)
+            bg_w, bg_h = bg_img.size
+        bg_draw.text((margin_left-120, margin_top+15),
+                     f'{cur_ds}', 'black', ds_font)
+        for num in range(ds_num):
+            music = temp_list[index]
+            i = num % row_num
+            j = num // row_num
+            id = music['id']
+            # 封面
+            item = Image.open(
+                cover_dir + f'{get_cover_len4_id(id)}.jpeg').convert('RGBA')
+            item = item.resize((item_len, item_len))
+            # score
+            if suffix in ['极', '極']:
+                if music['fc'] != '':
+                    if music['fc'] == 'fc':
+                        w, h = fc_img.size
+                        item.paste(fc_img, (int((item_len-w)/2),
+                                            int((item_len-h)/2)), fc_img)
+                        item = handel_finish_img(item)
+                    elif music['fc'] == 'fcp':
+                        w, h = fcp_img.size
+                        item.paste(fcp_img, (int((item_len-w)/2),
+                                             int((item_len-h)/2)), fcp_img)
+                        item = handel_finish_img(item)
+
+            if suffix in ['将']:
+                if music['rate'] != '':
+                    if music['rate'] == 'sss':
+                        w, h = sss_img.size
+                        item.paste(sss_img, (int((item_len-w)/2),
+                                             int((item_len-h)/2)), sss_img)
+                        item = handel_finish_img(item)
+                    elif music['rate'] == 'sssp':
+                        w, h = sssp_img.size
+                        item.paste(sssp_img, (int((item_len-w)/2),
+                                              int((item_len-h)/2)), sssp_img)
+                        item = handel_finish_img(item)
+
+            if suffix in ['神']:
+                if music['fc'] != '':
+                    if music['fc'] == 'ap':
+                        w, h = ap_img.size
+                        item.paste(ap_img, (int((item_len-w)/2),
+                                            int((item_len-h)/2)), ap_img)
+                        item = handel_finish_img(item)
+                    elif music['fc'] == 'app':
+                        w, h = app_img.size
+                        item.paste(app_img, (int((item_len-w)/2),
+                                             int((item_len-h)/2)), app_img)
+                        item = handel_finish_img(item)
+
+            if suffix in ['舞舞']:
+                if music['fs'] != '':
+                    if music['fs'] == 'fs':
+                        w, h = fs_img.size
+                        item.paste(fs_img, (int((item_len-w)/2),
+                                            int((item_len-h)/2)), fs_img)
+                        item = handel_finish_img(item)
+                    elif music['fs'] == 'fsp':
+                        w, h = fsp_img.size
+                        item.paste(fsp_img, (int((item_len-w)/2),
+                                             int((item_len-h)/2)), fsp_img)
+                        item = handel_finish_img(item)
+
+            if suffix in ['者']:
+                if music['achievements'] >= 80:
+                    item = handel_finish_img(item)
+            if music['level_index'] == 4:
+                # 图片添加边框
+                item = image_border(item, 'a', 5, (226, 209, 240))
+                item = item.resize((item_len, item_len))
+
+            bg_img.paste(item, (margin_left+i*(item_margin+item_len),
+                                margin_top+j*(item_margin+item_len)))
+            index = index+1
+        # 当前块行高
+        margin_top = margin_top+cur_row_h+block_margin
+        ds_index = ds_index + 1 if ds_index < len(ds_list)-1 else ds_index
+        cur_ds = ds_list[ds_index]
+    return bg_img
+
+
+# 过滤进度内容
+def filter_data(match, music_list):
+    music_played = []
+    music_remain_basic = []
+    music_remain_advanced = []
+    music_remain_expert = []
+    music_remain_master = []
+    music_remain_re_master = []
+    music_remain_difficult = []
+    if match[1] in ['将', '者']:
+        for music in music_list:
+            if music['level_index'] == 0 and music['achievements'] < (100.0 if match[1] == '将' else 80.0):
+                music_remain_basic.append(
+                    {"id": music['id'], "level_index": music['level_index'], "ds": music['ds'],
+                     "level": music['level'], "achievements": music['achievements'], "fc": music['fc'], "fs": music['fs']})
+            if music['level_index'] == 1 and music['achievements'] < (100.0 if match[1] == '将' else 80.0):
+                music_remain_advanced.append(
+                    {"id": music['id'], "level_index": music['level_index'], "ds": music['ds'],
+                     "level": music['level'], "achievements": music['achievements'], "fc": music['fc'], "fs": music['fs']})
+            if music['level_index'] == 2 and music['achievements'] < (100.0 if match[1] == '将' else 80.0):
+                music_remain_expert.append(
+                    {"id": music['id'], "level_index": music['level_index'], "ds": music['ds'],
+                     "level": music['level'], "achievements": music['achievements'], "fc": music['fc'], "fs": music['fs']})
+            if music['level_index'] == 3 and music['achievements'] < (100.0 if match[1] == '将' else 80.0):
+
+                music_remain_master.append(
+                    {"id": music['id'], "level_index": music['level_index'], "ds": music['ds'],
+                     "level": music['level'], "achievements": music['achievements'], "fc": music['fc'], "fs": music['fs']})
+            if match[0] in ['舞', '霸'] and music['level_index'] == 4 and music['achievements'] < (100.0 if match[1] == '将' else 80.0):
+                music_remain_re_master.append(
+                    {"id": music['id'], "level_index": music['level_index'], "ds": music['ds'],
+                     "level": music['level'], "achievements": music['achievements'], "fc": music['fc'], "fs": music['fs']})
+            music_played.append(
+                {"id": music['id'], "level_index": music['level_index'], "ds": music['ds'],
+                 "level": music['level'], "achievements": music['achievements'], "fc": music['fc'], "fs": music['fs']})
+    elif match[1] in ['極', '极']:
+        for music in music_list:
+            if music['level_index'] == 0 and not music['fc']:
+                music_remain_basic.append(
+                    {"id": music['id'], "level_index": music['level_index'], "ds": music['ds'],
+                     "level": music['level'], "achievements": music['achievements'], "fc": music['fc'], "fs": music['fs']})
+            if music['level_index'] == 1 and not music['fc']:
+                music_remain_advanced.append(
+                    {"id": music['id'], "level_index": music['level_index'], "ds": music['ds'],
+                     "level": music['level'], "achievements": music['achievements'], "fc": music['fc'], "fs": music['fs']})
+            if music['level_index'] == 2 and not music['fc']:
+                music_remain_expert.append(
+                    {"id": music['id'], "level_index": music['level_index'], "ds": music['ds'],
+                     "level": music['level'], "achievements": music['achievements'], "fc": music['fc'], "fs": music['fs']})
+            if music['level_index'] == 3 and not music['fc']:
+                music_remain_master.append(
+                    {"id": music['id'], "level_index": music['level_index'], "ds": music['ds'],
+                     "level": music['level'], "achievements": music['achievements'], "fc": music['fc'], "fs": music['fs']})
+            if match[0] == '舞' and music['level_index'] == 4 and not music['fc']:
+                music_remain_re_master.append(
+                    {"id": music['id'], "level_index": music['level_index'], "ds": music['ds'],
+                     "level": music['level'], "achievements": music['achievements'], "fc": music['fc'], "fs": music['fs']})
+            music_played.append(
+                {"id": music['id'], "level_index": music['level_index'], "ds": music['ds'],
+                 "level": music['level'], "achievements": music['achievements'], "fc": music['fc'], "fs": music['fs']})
+    elif match[1] == '舞舞':
+        for music in music_list:
+            if music['level_index'] == 0 and music['fs'] not in ['fs', 'fsp']:
+                music_remain_basic.append(
+                    {"id": music['id'], "level_index": music['level_index'], "ds": music['ds'],
+                     "level": music['level'], "achievements": music['achievements'], "fc": music['fc'], "fs": music['fs']})
+            if music['level_index'] == 1 and music['fs'] not in ['fs', 'fsp']:
+                music_remain_advanced.append(
+                    {"id": music['id'], "level_index": music['level_index'], "ds": music['ds'],
+                     "level": music['level'], "achievements": music['achievements'], "fc": music['fc'], "fs": music['fs']})
+            if music['level_index'] == 2 and music['fs'] not in ['fs', 'fsp']:
+                music_remain_expert.append(
+                    {"id": music['id'], "level_index": music['level_index'], "ds": music['ds'],
+                     "level": music['level'], "achievements": music['achievements'], "fc": music['fc'], "fs": music['fs']})
+            if music['level_index'] == 3 and music['fs'] not in ['fs', 'fsp']:
+                music_remain_master.append(
+                    {"id": music['id'], "level_index": music['level_index'], "ds": music['ds'],
+                     "level": music['level'], "achievements": music['achievements'], "fc": music['fc'], "fs": music['fs']})
+            if match[0] == '舞' and music['level_index'] == 4 and music['fs'] not in ['fs', 'fsp']:
+                music_remain_re_master.append(
+                    {"id": music['id'], "level_index": music['level_index'], "ds": music['ds'],
+                     "level": music['level'], "achievements": music['achievements'], "fc": music['fc'], "fs": music['fs']})
+            music_played.append(
+                {"id": music['id'], "level_index": music['level_index'], "ds": music['ds'],
+                 "level": music['level'], "achievements": music['achievements'], "fc": music['fc'], "fs": music['fs']})
+    elif match[1] == '神':
+        for music in music_list:
+            if music['level_index'] == 0 and music['fc'] not in ['ap', 'app']:
+                music_remain_basic.append(
+                    {"id": music['id'], "level_index": music['level_index'], "ds": music['ds'],
+                     "level": music['level'], "achievements": music['achievements'], "fc": music['fc'], "fs": music['fs']})
+            if music['level_index'] == 1 and music['fc'] not in ['ap', 'app']:
+                music_remain_advanced.append(
+                    {"id": music['id'], "level_index": music['level_index'], "ds": music['ds'],
+                     "level": music['level'], "achievements": music['achievements'], "fc": music['fc'], "fs": music['fs']})
+            if music['level_index'] == 2 and music['fc'] not in ['ap', 'app']:
+                music_remain_expert.append(
+                    {"id": music['id'], "level_index": music['level_index'], "ds": music['ds'],
+                     "level": music['level'], "achievements": music['achievements'], "fc": music['fc'], "fs": music['fs']})
+            if music['level_index'] == 3 and music['fc'] not in ['ap', 'app']:
+                music_remain_master.append(
+                    {"id": music['id'], "level_index": music['level_index'], "ds": music['ds'],
+                     "level": music['level'], "achievements": music['achievements'], "fc": music['fc'], "fs": music['fs']})
+            if match[0] == '舞' and music['level_index'] == 4 and music['fc'] not in ['ap', 'app']:
+                music_remain_re_master.append(
+                    {"id": music['id'], "level_index": music['level_index'], "ds": music['ds'],
+                     "level": music['level'], "achievements": music['achievements'], "fc": music['fc'], "fs": music['fs']})
+            music_played.append(
+                {"id": music['id'], "level_index": music['level_index'], "ds": music['ds'],
+                 "level": music['level'], "achievements": music['achievements'], "fc": music['fc'], "fs": music['fs']})
+    total_remain = music_remain_basic+music_remain_advanced+music_remain_expert + \
+        music_remain_master+music_remain_re_master
+    for music in total_remain:
+        song = total_list.by_id(str(music['id']))
+        # 定数大于13.6则列入难曲
+        if music['ds'] > 13.6:
+            music_remain_difficult.append(
+                {"id": song.id, "title": song.title, "ds": music['ds'], "level_index": music['level_index'], "level": song.level[music['level_index']], "achievements": music['achievements']})
+    return total_remain, music_played, music_remain_basic, music_remain_advanced, music_remain_expert, music_remain_master, music_remain_re_master, music_remain_difficult
+
+# xx进度
+
+
+async def create_plate_text(match, music_list):
+    total_remain, music_played, music_remain_basic, music_remain_advanced, music_remain_expert, music_remain_master, music_remain_re_master, music_remain_difficult = filter_data(
+        match, music_list)
+    message = f'''你的 {match[0]}{match[1]} 剩余进度如下
+Basic剩余{len(music_remain_basic)}首
+Advanced剩余{len(music_remain_advanced)}首
+Expert剩余{len(music_remain_expert)}首
+Master剩余{len(music_remain_master)}首
+'''
+
+    pc = math.ceil(len(total_remain)/3)
+    if pc == 0:
+        message += f'恭喜你已经达成{match[0]}{match[1]}了捏！'
+        return message
+    music_remain_difficult = sorted(
+        music_remain_difficult, key=lambda i: i['ds'], reverse=True)
+    if match[0] in ['舞', '霸']:
+        message += f'Re:Master剩余{len(music_remain_re_master)}首\n'
+    message += f'''总共剩余{len(total_remain)}首\n'''
+    if len(music_remain_master) == 0:
+        message += f'恭喜你已经{match[0]}{match[1]}确定了捏！\n'
+    total_remain = total_remain + music_remain_basic + music_remain_advanced
+    # 若难区小于10等于10则展示
+    if len(music_remain_difficult) == 0:
+        message += f'已经没有未完成的高难度铺面了!\n'
+    elif len(music_remain_difficult) <= 10:
+        message += '你的未完成高难度铺面列表:\n'
+        for music in music_remain_difficult:
+            message += f'''[{music['level']}] {music['title']} {str(music['achievements'])+'%' if music['achievements']!=0 else '无数据'}\n'''
+    else:
+        message += f'你的未完成高难度铺面还剩余{len(music_remain_difficult)}首\n'
+    message += f'理想状态下共需要单刷{pc}局\n大约{int((pc*12)/60)}小时{(pc*12)%60}分钟,加油！'
+    return message
