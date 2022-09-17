@@ -45,7 +45,6 @@ async def _(bot: Bot, event: Event, state: T_State):
 
 query_risk_area = on_regex(r'^风险区 .+ *\d?$')
 
-
 @query_risk_area.handle()
 async def _(bot: Bot, event: Event, state: T_State):
     city_data, internal_data = get_data()

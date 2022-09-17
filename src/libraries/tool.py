@@ -52,5 +52,37 @@ def computeRa(ds: float, achievement: float, spp: bool = False) -> int:
 
     return math.floor(ds * (min(100.5, achievement) / 100) * baseRa)
 
+
+def computeRank(achievement: float) -> str:
+    if achievement >= 100.5:
+        return 'SSSp'
+    elif achievement >= 100:
+        return 'SSS'
+    elif achievement >= 99.5:
+        return 'SSp'
+    elif achievement >= 99:
+        return 'SS'
+    elif achievement >= 98:
+        return 'Sp'
+    elif achievement >= 97:
+        return 'S'
+    elif achievement >= 94:
+        return 'AAA'
+    elif achievement >= 90:
+        return 'AA'
+    elif achievement >= 80:
+        return 'A'
+    elif achievement >= 75:
+        return 'BBB'
+    elif achievement >= 70:
+        return 'BB'
+    elif achievement >= 60:
+        return 'B'
+    elif achievement >= 50:
+        return 'C'
+    else:
+        return 'D'
+
+
 def print_to_json(json_str):
     print(json.dumps(json_str, indent=4, ensure_ascii=False))

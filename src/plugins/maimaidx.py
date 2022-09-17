@@ -1,12 +1,15 @@
 from collections import defaultdict
+from operator import truth
+import traceback
 
 from nonebot import on_command, on_regex
 from nonebot.typing import T_State
 from nonebot.rule import to_me
 from nonebot.adapters import Event, Bot
 from nonebot.adapters.cqhttp import Message
+from nonebot.exception import FinishedException
 from nonebot.matcher import Matcher
-from src.libraries.maimai_pic_draw_func import create_plate_text, draw_com_list, draw_plate_img, draw_score_list, get_plate_ach
+from src.libraries.maimai_pic_draw_func import create_plate_text, draw_com_list, draw_plate_img, draw_score_list, draw_single_record, get_plate_ach
 
 from src.libraries.tool import hash, resizePic
 from src.libraries.maimaidx_music import *
@@ -748,3 +751,96 @@ async def _(bot: Bot, event: Event, state: T_State, matcher: Matcher):
         await plate_progress_list.send('生成中，请稍等')
         message = await create_plate_text(match, music_list)
         await plate_progress_list.finish(message, at_sender=True)
+
+
+# 单曲成绩
+def init_score(music):
+    single_records = []
+    for index in range(len(music.ds)):
+        ds = music.ds[index]
+        single_records.append({'achievements': 0, 'fc': '', 'fs': '', 'id': music.id,
+                              'level': music.level[index], 'level_index': index, 'title': music.title, 'type': music.type, "ds": ds})
+    return single_records
+
+
+single_score = on_regex(r"info(.+)")
+
+
+@single_score.handle()
+async def _(bot: Bot, event: Event, state: T_State):
+    qq = str(event.get_user_id())
+    regex = 'info(.+)'
+    res = re.match(regex, str(event.get_message())).groups()
+    aliases = res[0].strip()
+    # 判断给定参数是id还是别称
+    if str.isdigit(aliases):
+        music = total_list.by_id(aliases)
+        if music == None:
+            await single_score.finish('未找到此id对应的歌曲')
+        else:
+            await single_score.send('生成中，请稍等')
+            # 若找到歌则取对应版本歌曲记录
+            records, success = await get_user_plate_records(qq, [music.version])
+            if success == 400:
+                await single_score.finish("未找到此玩家，请确保此玩家的用户名和查分器中的用户名相同。")
+            elif success == 403:
+                await single_score.finish("该用户禁止了其他人获取数据。")
+            # 初始化记录列表
+            single_records = init_score(music)
+            # 寻找记录中是否有该曲记录，有则覆盖记录列表
+            for song in records:
+                if song['id'] == int(music.id):
+                    for item in single_records:
+                        if item['level_index'] == song['level_index']:
+                            item['achievements'] = song['achievements']
+                            item['fc'] = song['fc']
+                            item['fs'] = song['fs']
+            img, success = await draw_single_record(music.id, single_records)
+            if success == 1:
+                await single_score.finish([{
+                    "type": "image",
+                    "data": {
+                            "file": f"base64://{str(image_to_base64(img), encoding='utf-8')}"
+                    }
+                }], at_sender=True)
+            else:
+                await single_score.finish('发生未知错误，请联系bot管理员')
+    else:
+        if aliases not in music_aliases:
+            await single_score.finish('未找到此别名对应的歌曲，可以更换成id进行尝试')
+        else:
+            # 读取别名对应的歌曲
+            await single_score.send('生成中，请稍等')
+            result_set = music_aliases[aliases]
+            if len(result_set) == 1:
+                # 若对应唯一
+                music = total_list.by_title(result_set[0])
+                # 若找到歌则取对应版本歌曲记录
+                records, success = await get_user_plate_records(qq, [music.version])
+                if success == 400:
+                    await single_score.finish("未找到此玩家，请确保此玩家的用户名和查分器中的用户名相同。")
+                elif success == 403:
+                    await single_score.finish("该用户禁止了其他人获取数据。")
+                # 初始化记录列表
+                single_records = init_score(music)
+                # 寻找记录中是否有该曲记录，有则覆盖记录列表
+                for song in records:
+                    if song['id'] == int(music.id):
+                        for item in single_records:
+                            if item['level_index'] == song['level_index']:
+                                item['achievements'] = song['achievements']
+                                item['fc'] = song['fc']
+                                item['fs'] = song['fs']
+                img, success = await draw_single_record(music.id, single_records)
+                if success == 1:
+                    await single_score.finish([{
+                        "type": "image",
+                        "data": {
+                                "file": f"base64://{str(image_to_base64(img), encoding='utf-8')}"
+                        }
+                    }], at_sender=True)
+                else:
+                    await single_score.finish('发生未知错误，请联系bot管理员')
+            else:
+                s = '\n'.join(result_set)
+                await find_song.finish(f"您要找的可能是以下歌曲中的其中一首：\n{ s },可以通过对应id进行查询")

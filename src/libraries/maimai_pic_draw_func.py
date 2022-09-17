@@ -1641,3 +1641,165 @@ Master剩余{len(music_remain_master)}首
         message += f'你的未完成高难度铺面还剩余{len(music_remain_difficult)}首\n'
     message += f'理想状态下共需要单刷{pc}局\n大约{int((pc*12)/60)}小时{(pc*12)%60}分钟,加油！'
     return message
+
+
+# 换行
+LINE_CHAR_COUNT = 12*2  # 每行字符数：12个中文字符
+TABLE_WIDTH = 4
+
+
+def line_break(line):
+    ret = ''
+    width = 0
+    for c in line:
+        if len(c.encode('utf8')) == 3:  # 中文
+            if LINE_CHAR_COUNT == width + 1:  # 剩余位置不够一个汉字
+                width = 2
+                ret += '\n' + c
+            else:  # 中文宽度加2，注意换行边界
+                width += 2
+                ret += c
+        else:
+            if c == '\t':
+                space_c = TABLE_WIDTH - width % TABLE_WIDTH  # 已有长度对TABLE_WIDTH取余
+                ret += ' ' * space_c
+                width += space_c
+            elif c == '\n':
+                width = 0
+                ret += c
+            else:
+                width += 1
+                ret += c
+        if width >= LINE_CHAR_COUNT:
+            ret += '\n'
+            width = 0
+    if ret.endswith('\n'):
+        return ret
+    return ret + '\n'
+
+# 单曲成绩
+
+
+async def draw_single_record(id, single_records):
+    music = total_list.by_id(id)
+    # 背景图片
+    pic_dir = 'src/static/mai/pic/'
+    cover_dir = 'src/static/mai/cover/'
+    adobe = 'src/static/adobe_simhei.otf'
+
+    # 背景图选择
+    if len(single_records) == 5:
+        margin_top = []
+        bg_img = Image.open(
+            pic_dir + 'UI_Single_Base_Re.png').convert('RGBA')
+    else:
+        margin_top = [[250, 245, 610, 800], [430, 425], [615, 605], [800, 790]]
+        bg_img = Image.open(
+            pic_dir + 'UI_Single_Base_Mas.png').convert('RGBA')
+    bg_draw = ImageDraw.Draw(bg_img)
+
+    # type图标选择
+    if single_records[0]['type'] == 'DX':
+        type_img = Image.open(
+            pic_dir + 'UI_UPE_Infoicon_DeluxeMode.png').convert('RGBA')
+    else:
+        type_img = Image.open(
+            pic_dir + 'UI_UPE_Infoicon_StandardMode.png').convert('RGBA')
+    bg_img.paste(type_img, (240, 340), type_img)
+
+    # 绘制封面
+    music_cover = resizePic(Image.open(
+        cover_dir + f'{get_cover_len4_id(id)}.jpeg'), 0.8).convert('RGBA')
+    bg_img.paste(music_cover, (40, 380))
+
+    # 绘制信息
+    # 标题
+    title = music.title
+    if columWidth(title) > 41:
+        title = changeColumnWidth(title, 40) + '...'
+    title = line_break(title)
+    title_font = ImageFont.truetype(adobe, 40, encoding='utf-8')
+    bg_draw.text((380, 380), title, font=title_font, fill='black')
+
+    # 作者
+    artist = music.artist
+    if columWidth(artist) > 25:
+        artist = changeColumnWidth(artist, 24) + '...'
+    artist_font = ImageFont.truetype(adobe, 30, encoding='utf-8')
+    bg_draw.text((380, 480), artist, font=artist_font, fill='black')
+
+    # ID
+    music_id = 'ID:'+music.id
+    id_font = ImageFont.truetype(adobe, 34, encoding='utf-8')
+    bg_draw.text((380, 530), music_id, font=id_font, fill=(91, 98, 124))
+
+    # 曲包
+    genre = '分类:'+music.genre
+    genre_font = ImageFont.truetype(adobe, 34, encoding='utf-8')
+    bg_draw.text((380, 590), genre, font=genre_font, fill='black')
+
+    # 版本
+    version = '版本:'+music.version
+    version = line_break(version)
+    version_font = ImageFont.truetype(adobe, 34, encoding='utf-8')
+    bg_draw.text((380, 660), version, font=version_font, fill='black')
+
+    for i in range(len(single_records)):
+        song = single_records[i]
+        # 定数
+        ds = song['ds']
+        ds_font = ImageFont.truetype(adobe, 34, encoding='utf-8')
+        if len(str(ds)) == 4:
+            margin_left = 900
+        else:
+            margin_left = 910
+        bg_draw.text((margin_left, margin_top[i][0]), str(ds),
+                     font=ds_font, fill='black')
+
+        # fc&ap
+        fc_img = None
+        if song['fc'] == 'fc':
+            fc_img = resizePic(Image.open(
+                pic_dir+'UI_MSS_MBase_Icon_FC.png'), 1.8)
+            bg_img.paste(fc_img, (1010, margin_top[i][1]-25), fc_img)
+        elif song['fc'] == 'fcp':
+            fc_img = resizePic(Image.open(
+                pic_dir+'UI_MSS_MBase_Icon_FCp.png'), 1.8)
+            bg_img.paste(fc_img, (1010, margin_top[i][1]-25), fc_img)
+        elif song['fc'] == 'ap':
+            fc_img = resizePic(Image.open(
+                pic_dir+'UI_MSS_MBase_Icon_AP.png'), 1.8)
+            bg_img.paste(fc_img, (1010, margin_top[i][1]-25), fc_img)
+        elif song['fc'] == 'app':
+            fc_img = resizePic(Image.open(
+                pic_dir+'UI_MSS_MBase_Icon_APp.png'), 1.8)
+            bg_img.paste(fc_img, (1010, margin_top[i][1]-25), fc_img)
+
+        # fc&ap
+        fs_img = None
+        if song['fs'] == 'fs':
+            fs_img = resizePic(Image.open(
+                pic_dir+'UI_MSS_MBase_Icon_fs.png'), 1.8)
+            bg_img.paste(fs_img, (1100, margin_top[i][1]-25), fs_img)
+        elif song['fs'] == 'fsp':
+            fs_img = resizePic(Image.open(
+                pic_dir+'UI_MSS_MBase_Icon_fsp.png'), 1.8)
+            bg_img.paste(fs_img, (1100, margin_top[i][1]-25), fs_img)
+
+        # achievements
+        achievements = song['achievements']
+        achievements = '' if achievements == 0 else str(achievements)+'%'
+        achievements_font = ImageFont.truetype(adobe, 42, encoding='utf-8')
+        bg_draw.text((1210, margin_top[i][1]-10), str(achievements),
+                     font=achievements_font, fill='black')
+
+        # rank
+        # rankPic = 'D C B BB BBB A AA AAA S Sp SS SSp SSS SSSp'.split(' ')
+        achievements = song['achievements']
+        rank = computeRank(achievements)
+        if achievements != 0:
+            rank_img = resizePic(Image.open(
+                pic_dir+f'UI_GAM_Rank_{rank}.png'), 1.4)
+            bg_img.paste(rank_img, (1460, margin_top[i][1]-20), rank_img)
+
+    return bg_img, 1
