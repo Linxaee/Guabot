@@ -512,7 +512,7 @@ async def _(bot: Bot, event: Event, state: T_State):
 
 
 adds = on_command('添加别名')
-#white_list2 = ['702611663']
+# white_list2 = ['702611663']
 
 
 @adds.handle()
@@ -592,44 +592,43 @@ async def _(bot: Bot, event: Event, state: T_State):
         await com_list.finish('暂时只支持8-15的完成表查询捏')
     else:
         com_img, success = await draw_com_list(ds, qq)
-        if success == 0:
-            await com_list.finish('''
-尚未录入用户信息，请私聊bot进行登录。
-私聊bot 发送如下指令：
-查分器登录 <用户名> <密码>
-'''
-                                  )
+        if success == 400:
+            await com_list.finish("未找到此玩家，请确保此玩家的qq号和查分器中的qq号相同。")
+        elif success == 403:
+            await com_list.finish("该用户禁止了其他人获取数据。")
         elif success == 1:
-            await ds_list.finish([{
+            await com_list.send('生成中，请稍等')
+            await com_list.finish([{
                 "type": "image",
                 "data": {
                         "file": f"base64://{str(image_to_base64(com_img), encoding='utf-8')}"
                 }
             }], at_sender=True)
 
-    # 登录查分器
-login = on_regex(r"查分器登录 .+ *\d?", rule=to_me())
+# 登录查分器
+# 现在不再需要登录了
+# login = on_regex(r"查分器登录 .+ *\d?", rule=to_me())
 
 
-@login.handle()
-async def _(bot: Bot, event: Event, state: T_State):
-    # if event.message_type != "private":
-    #     await login.finish("只允许私聊登录哦")
-    # else:
-    qq = str(event.get_user_id())
-    regex = "^查分器登录 (.+) *(\d)?$"
-    res = re.match(regex, str(event.get_message())).groups()
-    list = res[0].split(' ')
-    if len(list) == 2:
-        account = list[0]
-        password = list[1]
-        success = await login_prober(qq, account, password)
-        if success == -3:
-            await login.finish("用户名或密码错误")
-        else:
-            await login.finish("登陆成功，用户数据已记录")
-    else:
-        await login.finish("登录格式错误，请重新输入")
+# @login.handle()
+# async def _(bot: Bot, event: Event, state: T_State):
+#     # if event.message_type != "private":
+#     #     await login.finish("只允许私聊登录哦")
+#     # else:
+#     qq = str(event.get_user_id())
+#     regex = "^查分器登录 (.+) *(\d)?$"
+#     res = re.match(regex, str(event.get_message())).groups()
+#     list = res[0].split(' ')
+#     if len(list) == 2:
+#         account = list[0]
+#         password = list[1]
+#         success = await login_prober(qq, account, password)
+#         if success == -3:
+#             await login.finish("用户名或密码错误")
+#         else:
+#             await login.finish("登陆成功，用户数据已记录")
+#     else:
+#         await login.finish("登录格式错误，请重新输入")
 
 # XX分数列表
 score_list = on_regex(r".+分数列表")
@@ -653,22 +652,20 @@ async def _(bot: Bot, event: Event, state: T_State):
         await ds_list.finish('暂时只支持8-15的分数列表查询捏')
     else:
         com_img, success = await draw_score_list(ds, qq, cur_page)
-        if success == 0:
-            await com_list.finish('''
-尚未录入用户信息，请私聊bot进行登录。
-私聊bot 发送如下指令：
-查分器登录 <用户名> <密码>
-'''
-                                  )
+        if success == 400:
+            await score_list.finish("未找到此玩家，请确保此玩家的qq号和查分器中的qq号相同。")
+        elif success == 403:
+            await score_list.finish("该用户禁止了其他人获取数据。")
         elif success == 1:
-            await ds_list.finish([{
+            await score_list.send('生成中，请稍等')
+            await score_list.finish([{
                 "type": "image",
                 "data": {
                         "file": f"base64://{str(image_to_base64(com_img), encoding='utf-8')}"
                 }
             }], at_sender=True)
         elif success == 233:
-            await ds_list.finish([{
+            await score_list.finish([{
                 "type": "text",
                 "data": {
                     "text": "超过最大页码限制，默认显示第一页"
@@ -680,7 +677,7 @@ async def _(bot: Bot, event: Event, state: T_State):
                 }
             }], at_sender=True)
         elif success == -1:
-            await ds_list.finish([{
+            await score_list.finish([{
                 "type": "text",
                 "data": {
                     "text": "你在该难度暂时没有游玩记录捏"
@@ -693,7 +690,7 @@ plate_com_list = on_regex(
     r"([真超檄橙暁晓桃櫻樱紫菫堇白雪輝辉舞熊華华爽煌霸])([极将者神舞]{1,2})完成表", priority=1)
 
 
-@plate_com_list.handle()
+@ plate_com_list.handle()
 async def _(bot: Bot, event: Event, state: T_State, matcher: Matcher):
     regex = '([真超檄橙暁晓桃櫻樱紫菫堇白雪輝辉舞熊華华爽煌霸])([极将者神舞]{1,2})'
     match = re.match(regex, str(event.get_message())).groups()
@@ -706,17 +703,15 @@ async def _(bot: Bot, event: Event, state: T_State, matcher: Matcher):
     full_name = f'{prefix}{suffix}'
     if full_name in ['真将']:
         await plate_com_list.finish('暂时没有这种牌子捏')
-    if prefix in ['霸', '舞']:
-        await plate_com_list.finish('跑霸和舞你是想累死我吗.jpg')
+    if prefix in ['霸']:
+        await plate_com_list.finish('跑霸者你是想累死我吗.jpg')
     music_list, success = await get_plate_ach(match, prefix, str(event.get_user_id()))
-    if success == 0:
-        await com_list.finish('''(先加bot好友)
-尚未录入用户信息，请私聊bot进行登录。
-私聊bot 发送如下指令：
-查分器登录 <用户名> <密码>
-'''
-                              )
+    if success == 400:
+        await plate_com_list.finish("未找到此玩家，请确保此玩家的qq号和查分器中的qq号相同。")
+    elif success == 403:
+        await plate_com_list.finish("该用户禁止了其他人获取数据。")
     elif success == 1:
+        await plate_com_list.send('生成中，请稍等')
         img = await draw_plate_img(match, music_list)
         await ds_list.finish([{
             "type": "image",
@@ -731,7 +726,7 @@ plate_progress_list = on_regex(
     r"([真超檄橙暁晓桃櫻樱紫菫堇白雪輝辉舞熊華华爽煌霸])([极将者神舞]{1,2})进度", priority=1)
 
 
-@plate_progress_list.handle()
+@ plate_progress_list.handle()
 async def _(bot: Bot, event: Event, state: T_State, matcher: Matcher):
     regex = '([真超檄橙暁晓桃櫻樱紫菫堇白雪輝辉舞熊華华爽煌霸])([极将者神舞]{1,2})进度'
     match = re.match(regex, str(event.get_message())).groups()
@@ -740,18 +735,16 @@ async def _(bot: Bot, event: Event, state: T_State, matcher: Matcher):
     suffix = match[1]
     if len(suffix) == 2:
         if suffix != '舞舞':
-            await plate_com_list.finish('暂时没有这种牌子捏')
+            await plate_progress_list.finish('暂时没有这种牌子捏')
     full_name = f'{prefix}{suffix}'
     if full_name in ['真将', '霸者', '霸极', '霸将', '霸神']:
-        await plate_com_list.finish('暂时没有这种牌子捏')
+        await plate_progress_list.finish('暂时没有这种牌子捏')
     music_list, success = await get_plate_ach(match, prefix, str(event.get_user_id()))
-    if success == 0:
-        await plate_progress_list.finish('''(先加bot好友)
-尚未录入用户信息，请私聊bot进行登录。
-私聊bot 发送如下指令：
-查分器登录 <用户名> <密码>
-'''
-                                         )
+    if success == 400:
+        await plate_progress_list.finish("未找到此玩家，请确保此玩家的qq号和查分器中的qq号相同。")
+    elif success == 403:
+        await plate_progress_list.finish("该用户禁止了其他人获取数据。")
     elif success == 1:
+        await plate_progress_list.send('生成中，请稍等')
         message = await create_plate_text(match, music_list)
-        await plate_progress_list.finish(message)
+        await plate_progress_list.finish(message, at_sender=True)

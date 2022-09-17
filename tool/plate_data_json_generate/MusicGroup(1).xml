@@ -1,0 +1,256 @@
+<?xml version="1.0" encoding="utf-8"?>
+<MusicGroupData xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <dataName>MusicGroup006149</dataName>
+  <name>
+    <id>6149</id>
+    <str>舞ReMASTER</str>
+  </name>
+  <MusicIds>
+    <list>
+      <StringID>
+        <id>17</id>
+        <str>Future</str>
+      </StringID>
+      <StringID>
+        <id>22</id>
+        <str>In Chaos</str>
+      </StringID>
+      <StringID>
+        <id>23</id>
+        <str>Crush On You</str>
+      </StringID>
+      <StringID>
+        <id>24</id>
+        <str>Sun Dance</str>
+      </StringID>
+      <StringID>
+        <id>58</id>
+        <str>Endless World</str>
+      </StringID>
+      <StringID>
+        <id>61</id>
+        <str>Beat Of Mind</str>
+      </StringID>
+      <StringID>
+        <id>62</id>
+        <str>檄！帝国華撃団(改)</str>
+      </StringID>
+      <StringID>
+        <id>65</id>
+        <str>ZIGG-ZAGG</str>
+      </StringID>
+      <StringID>
+        <id>66</id>
+        <str>ワールズエンド・ダンスホール</str>
+      </StringID>
+      <StringID>
+        <id>70</id>
+        <str>ジングルベル</str>
+      </StringID>
+      <StringID>
+        <id>71</id>
+        <str>マトリョシカ</str>
+      </StringID>
+      <StringID>
+        <id>80</id>
+        <str>City Escape: Act1</str>
+      </StringID>
+      <StringID>
+        <id>81</id>
+        <str>Rooftop Run: Act1</str>
+      </StringID>
+      <StringID>
+        <id>100</id>
+        <str>Tell Your World</str>
+      </StringID>
+      <StringID>
+        <id>107</id>
+        <str>ロミオとシンデレラ</str>
+      </StringID>
+      <StringID>
+        <id>143</id>
+        <str>Fragrance</str>
+      </StringID>
+      <StringID>
+        <id>145</id>
+        <str>Starlight Disco</str>
+      </StringID>
+      <StringID>
+        <id>146</id>
+        <str>39</str>
+      </StringID>
+      <StringID>
+        <id>198</id>
+        <str>カゲロウデイズ</str>
+      </StringID>
+      <StringID>
+        <id>200</id>
+        <str>Bad Apple!! feat nomico</str>
+      </StringID>
+      <StringID>
+        <id>204</id>
+        <str>ナイト・オブ・ナイツ</str>
+      </StringID>
+      <StringID>
+        <id>226</id>
+        <str>Blew Moon</str>
+      </StringID>
+      <StringID>
+        <id>227</id>
+        <str>Garakuta Doll Play</str>
+      </StringID>
+      <StringID>
+        <id>247</id>
+        <str>Danza zandA</str>
+      </StringID>
+      <StringID>
+        <id>255</id>
+        <str>Burning Hearts ～炎のANGEL～</str>
+      </StringID>
+      <StringID>
+        <id>256</id>
+        <str>いーあるふぁんくらぶ</str>
+      </StringID>
+      <StringID>
+        <id>265</id>
+        <str>Save This World νMIX</str>
+      </StringID>
+      <StringID>
+        <id>266</id>
+        <str>Living Universe</str>
+      </StringID>
+      <StringID>
+        <id>282</id>
+        <str>からくりピエロ</str>
+      </StringID>
+      <StringID>
+        <id>295</id>
+        <str>緋色のDance</str>
+      </StringID>
+      <StringID>
+        <id>296</id>
+        <str>明星ロケット</str>
+      </StringID>
+      <StringID>
+        <id>299</id>
+        <str>ロストワンの号哭</str>
+      </StringID>
+      <StringID>
+        <id>301</id>
+        <str>患部で止まってすぐ溶ける～狂気の優曇華院</str>
+      </StringID>
+      <StringID>
+        <id>310</id>
+        <str>エピクロスの虹はもう見えない</str>
+      </StringID>
+      <StringID>
+        <id>312</id>
+        <str>ってゐ！ ～えいえんてゐVer～</str>
+      </StringID>
+      <StringID>
+        <id>365</id>
+        <str>ガラテアの螺旋</str>
+      </StringID>
+      <StringID>
+        <id>414</id>
+        <str>若い力 -SEGA HARD GIRLS MIX-</str>
+      </StringID>
+      <StringID>
+        <id>496</id>
+        <str>AMAZING MIGHTYYYY!!!!</str>
+      </StringID>
+      <StringID>
+        <id>513</id>
+        <str>だんだん早くなる</str>
+      </StringID>
+      <StringID>
+        <id>532</id>
+        <str>洗脳</str>
+      </StringID>
+      <StringID>
+        <id>589</id>
+        <str>Panopticon</str>
+      </StringID>
+      <StringID>
+        <id>731</id>
+        <str>妄想感傷代償連盟</str>
+      </StringID>
+      <StringID>
+        <id>741</id>
+        <str>インビジブル</str>
+      </StringID>
+      <StringID>
+        <id>756</id>
+        <str>CYBER Sparks</str>
+      </StringID>
+      <StringID>
+        <id>759</id>
+        <str>サドマミホリック</str>
+      </StringID>
+      <StringID>
+        <id>763</id>
+        <str>はやくそれになりたい！</str>
+      </StringID>
+      <StringID>
+        <id>777</id>
+        <str>花と、雪と、ドラムンベース。</str>
+      </StringID>
+      <StringID>
+        <id>793</id>
+        <str>ロキ</str>
+      </StringID>
+      <StringID>
+        <id>799</id>
+        <str>QZKago Requiem</str>
+      </StringID>
+      <StringID>
+        <id>803</id>
+        <str>Schwarzschild</str>
+      </StringID>
+      <StringID>
+        <id>806</id>
+        <str>ナイトメア☆パーティーナイト</str>
+      </StringID>
+      <StringID>
+        <id>809</id>
+        <str>結ンデ開イテ羅刹ト骸</str>
+      </StringID>
+      <StringID>
+        <id>812</id>
+        <str>Alea jacta est!</str>
+      </StringID>
+      <StringID>
+        <id>816</id>
+        <str>クレイジークレイジーダンサーズ</str>
+      </StringID>
+      <StringID>
+        <id>818</id>
+        <str>隠然</str>
+      </StringID>
+      <StringID>
+        <id>820</id>
+        <str>FFT</str>
+      </StringID>
+      <StringID>
+        <id>825</id>
+        <str>雷切-RAIKIRI-</str>
+      </StringID>
+      <StringID>
+        <id>830</id>
+        <str>立ち入り禁止</str>
+      </StringID>
+      <StringID>
+        <id>833</id>
+        <str>the EmpErroR</str>
+      </StringID>
+      <StringID>
+        <id>834</id>
+        <str>PANDORA PARADOXXX</str>
+      </StringID>
+      <StringID>
+        <id>838</id>
+        <str>最終鬼畜妹フランドール・S</str>
+      </StringID>
+    </list>
+  </MusicIds>
+</MusicGroupData>

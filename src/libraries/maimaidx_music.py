@@ -4,7 +4,7 @@ import random
 from typing import Dict, List, Optional, Union, Tuple, Any
 from copy import deepcopy
 from src.libraries.tool import computeRa, print_to_json
-
+import aiohttp
 import requests
 
 
@@ -87,20 +87,54 @@ async def login_prober(qq, username, password):
             f.close()
             return 1
 
-
+# 获取玩家全部成绩
 async def get_user_data(qq: str):
-    json_dir = 'src/static/mai/user_account_json/'
-    url = 'https://www.diving-fish.com/api/maimaidxprober/player/records'
-    try:
-        with open(f'{json_dir}{qq}_account.json', 'r', encoding='utf-8') as f:
-            user_account = json.loads(f.read())
-            f.close()
-    except FileNotFoundError:
-        return None, 0
-    cookie = 'jwt_token='+user_account['cookie']['jwt_token']
-    headers = {"Cookie": cookie}
-    res = requests.get(url, headers=headers)
-    records = json.loads(res.text)['records']
+    version = ['maimai', 'maimai PLUS', 'maimai GreeN', 'maimai GreeN PLUS',
+               'maimai ORANGE', 'maimai ORANGE PLUS', 'maimai PiNK', 'maimai PiNK PLUS',
+               'maimai MURASAKi', 'maimai MURASAKi PLUS', 'maimai MiLK', 'MiLK PLUS', 'maimai FiNALE', 'maimai でらっくす', 'maimai でらっくす PLUS', 'maimai でらっくす Splash']
+    url = 'https://www.diving-fish.com/api/maimaidxprober/query/plate'
+    payload = {
+        "qq": f"{qq}",
+        "version": version
+    }
+    async with aiohttp.request("POST", url, json=payload) as res:
+        if res.status == 400:
+            return None, 400
+        if res.status == 403:
+            return None, 403
+        records = await res.json()
+        records = records['verlist']
+    return records, 1
+    # 现在不再需要登录了
+    # json_dir = 'src/static/mai/user_account_json/'
+    # url = 'https://www.diving-fish.com/api/maimaidxprober/player/records'
+    # try:
+    #     with open(f'{json_dir}{qq}_account.json', 'r', encoding='utf-8') as f:
+    #         user_account = json.loads(f.read())
+    #         f.close()
+    # except FileNotFoundError:
+    #     return None, 0
+    # cookie = 'jwt_token='+user_account['cookie']['jwt_token']
+    # headers = {"Cookie": cookie}
+    # res = requests.get(url, headers=headers)
+
+
+# 获取玩家版本成绩
+
+
+async def get_user_plate_records(qq, version):
+    url = 'https://www.diving-fish.com/api/maimaidxprober/query/plate'
+    payload = {
+        "qq": f"{qq}",
+        "version": version
+    }
+    async with aiohttp.request("POST", url, json=payload) as res:
+        if res.status == 400:
+            return None, 400
+        if res.status == 403:
+            return None, 403
+        records = await res.json()
+        records = records['verlist']
     return records, 1
 
 

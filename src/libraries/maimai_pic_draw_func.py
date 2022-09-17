@@ -884,8 +884,15 @@ async def draw_com_list(ds: str, qq: str):
         return temp_img
 
     records, success = await get_user_data(qq)
-    if success == 0:
-        return None, 0
+    if success == 400:
+        return None, 400
+    if success == 403:
+        return None, 403
+    # records添加定数
+    for music in records:
+        song = total_list.by_id(str(music['id']))
+        music['ds'] = song['ds'][music['level_index']]
+
     ds_range = ds_dict[ds]
     com_list = []
     for item in records:
@@ -899,7 +906,7 @@ async def draw_com_list(ds: str, qq: str):
     music_list = sorted(music_list, key=lambda i: i['ds'], reverse=True)
     for music in music_list:
         for com_music in com_list:
-            if int(music['id']) == com_music['song_id'] and music['diff_index'] == com_music['level_index']:
+            if int(music['id']) == com_music['id'] and music['diff_index'] == com_music['level_index']:
                 music['achievement'] = com_music['achievements']
     # 计算出每种定数各有多少个
     ds_num_list = []
@@ -1030,8 +1037,15 @@ async def draw_score_list(ds: str, qq: str, cur_page: int):
     }
 
     records, success = await get_user_data(qq)
-    if success == 0:
-        return None, 0
+    if success == 400:
+        return None, 400
+    if success == 403:
+        return None, 403
+    # records添加定数
+    for music in records:
+        song = total_list.by_id(str(music['id']))
+        music['ds'] = song['ds'][music['level_index']]
+
     ds_range = ds_dict_score[ds]
     score_list = []
     for item in records:
@@ -1196,14 +1210,22 @@ def handel_finish_img(img):
     label = Image.blend(img, mask, 0.3)
     label.paste(gou_img, (-17, -17), gou_img)
     return label
+
 # 获取对应版本曲子记录信息
 
 
 async def get_plate_ach(match, plate: str, qq: str):
+
+    def convert_rate(achievements):
+        if achievements >= 100.5:
+            return 'sssp'
+        elif achievements >= 100:
+            return 'sss'
+
     with open('src/static/mai/plate/plate_dict.json', 'r') as f:
         plate_dict = json.load(f)
         f.close()
-    records, success = await get_user_data(qq)
+    records, success = await get_user_plate_records(qq, plate_version[plate])
     if success == 0:
         return None, 0
     music_list = []
@@ -1215,11 +1237,11 @@ async def get_plate_ach(match, plate: str, qq: str):
         # 遍历玩家记录
         for item in records:
             # print(item)
-            if str(item['song_id']) == str(music['song_id']) and item['level_index'] == music['level_index']:
+            if str(item['id']) == str(music['song_id']) and item['level_index'] == music['level_index']:
                 # print_to_json(item)
                 music_list.append(
-                    {"id": item['song_id'], "title": music['title'], "ds": music['ds'], "level_index": item['level_index'], "level": item['level'],
-                     "achievements": item['achievements'], "fc": item['fc'], "fs": item['fs'], 'rate': item['rate']})
+                    {"id": item['id'], "title": music['title'], "ds": music['ds'], "level_index": item['level_index'], "level": item['level'],
+                     "achievements": item['achievements'], "fc": item['fc'], "fs": item['fs'], 'rate': convert_rate(item['achievements'])})
                 flag = True
         if not flag:
             music_list.append(
@@ -1325,25 +1347,52 @@ async def draw_plate_img(match, music_list):
 
     temp_list = sorted(temp_list, key=lambda x: x['level'], reverse=True)
     # 计算出每种定数各有多少个
-    ds_num_list = []
-    ds_list = []
-    count = 0
-    cur_ds = temp_list[0]['level']
-    for i in range(len(temp_list)):
-        ds = temp_list[i]['level']
-        if cur_ds == ds:
-            count = count + 1
-        else:
-            ds_num_list.append(count)
-            ds_list.append(cur_ds)
-            count = 1
-            cur_ds = ds
-        if i == len(temp_list)-1:
-            ds_num_list.append(count)
-            ds_list.append(cur_ds)
-            count = 1
-    ds_index = 0
-    cur_ds = ds_list[ds_index]
+    if prefix == '舞':
+        temp_list = sorted(temp_list, key=lambda x: x['ds'], reverse=True)
+        save_list = []
+        for item in temp_list:
+            if item['ds'] >= 14:
+                save_list.append(item)
+        temp_list = save_list
+        ds_num_list = []
+        ds_list = []
+        count = 0
+        cur_ds = temp_list[0]['ds']
+        for i in range(len(temp_list)):
+            ds = temp_list[i]['ds']
+            if cur_ds == ds:
+                count = count + 1
+            else:
+                ds_num_list.append(count)
+                ds_list.append(cur_ds)
+                count = 1
+                cur_ds = ds
+            if i == len(temp_list)-1:
+                ds_num_list.append(count)
+                ds_list.append(cur_ds)
+                count = 1
+        ds_index = 0
+        cur_ds = ds_list[ds_index]
+    else:
+        ds_num_list = []
+        ds_list = []
+        count = 0
+        cur_ds = temp_list[0]['level']
+        for i in range(len(temp_list)):
+            ds = temp_list[i]['level']
+            if cur_ds == ds:
+                count = count + 1
+            else:
+                ds_num_list.append(count)
+                ds_list.append(cur_ds)
+                count = 1
+                cur_ds = ds
+            if i == len(temp_list)-1:
+                ds_num_list.append(count)
+                ds_list.append(cur_ds)
+                count = 1
+        ds_index = 0
+        cur_ds = ds_list[ds_index]
     # 已绘制总高度
     cur_bg_h = 250
     for ds_num in ds_num_list:

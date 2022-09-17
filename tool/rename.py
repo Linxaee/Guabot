@@ -1,7 +1,5 @@
 # import os
 # root_path = os.path.split(os.path.realpath(__file__))[0]
-
-
 # class BatchRename():
 
 #     def rename(self):
@@ -24,8 +22,3 @@
 # if __name__ == '__main__':
 #     # demo = BatchRename()
 #     # demo.rename()
-
-# from src.libraries.COVID_data import get_level_data
-
-# if __name__ == '__main__':
-#     get_level_data()
