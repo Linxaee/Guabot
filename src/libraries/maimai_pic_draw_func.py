@@ -1689,7 +1689,8 @@ async def draw_single_record(id, single_records):
 
     # 背景图选择
     if len(single_records) == 5:
-        margin_top = []
+        margin_top = [[230, 225, 610, 800], [
+            380, 375], [540, 530], [690, 680], [840, 840]]
         bg_img = Image.open(
             pic_dir + 'UI_Single_Base_Re.png').convert('RGBA')
     else:
@@ -1788,7 +1789,7 @@ async def draw_single_record(id, single_records):
 
         # achievements
         achievements = song['achievements']
-        achievements = '' if achievements == 0 else str(achievements)+'%'
+        achievements = '' if achievements == 0 else f'{"%.4f" % achievements} %'
         achievements_font = ImageFont.truetype(adobe, 42, encoding='utf-8')
         bg_draw.text((1210, margin_top[i][1]-10), str(achievements),
                      font=achievements_font, fill='black')

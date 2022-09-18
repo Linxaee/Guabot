@@ -302,30 +302,28 @@ async def _(bot: Bot, event: Event, state: T_State):
         await add_record.finish("只允许群聊添加哦")
     else:
         if raw_args:
-            # 将参数存入state以阻止后续再向用户询问参数
             state["context"] = raw_args  # 如果用户发送了参数则直接赋值
 
 
 @add_record.got("context", prompt="请发送要添加的文本或图片")
 async def arg_handle(bot: Bot, event: Event, state: T_State):
+    # 群聊id
     group_id = event.get_session_id().split('_')[1]
-    # group_id = 702611663
     current_time = get_current_time()
     try:
+        # 判断是否是图片消息
         if 'CQ:image' in state["context"]:
-            pattern = re.compile(r'http.+')
+            pattern = re.compile(r'http.+')  # 匹配图片链接
             res = f'{state["context"]}'
-            # 图片请求ur
-            url = pattern.search(res).group()[:-1]
-            # 将参数存入state以阻止后续再向用户询问参数
-            state["context"] = url  # 如果用户发送了参数则直接赋值
-            img_type, file_time = add_to_folder(state["context"])
+            url = pattern.search(res).group()[:-1]  # search图片请求url
+            state["context"] = url  # 将参数存入state以阻止后续再向用户询问参数
+            img_type, file_time = add_to_folder(state["context"])   # 存入文件夹
             add_to_csv(group_id, current_time,
-                       event.get_user_id(), f'file-img-{file_time}.{img_type}')
+                       event.get_user_id(), f'file-img-{file_time}.{img_type}')  # 写入csv
             await add_record.finish("圣经已添加")
         else:
+            # 文字消息则直接写入
             context = state["context"]
-            context = f'"{context}"'
             add_to_csv(group_id, current_time,
                        event.get_user_id(), context)
             await add_record.finish("圣经已添加")

@@ -844,3 +844,4 @@ async def _(bot: Bot, event: Event, state: T_State):
             else:
                 s = '\n'.join(result_set)
                 await find_song.finish(f"您要找的可能是以下歌曲中的其中一首：\n{ s },可以通过对应id进行查询")
+
