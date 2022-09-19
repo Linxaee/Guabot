@@ -1,5 +1,7 @@
 from collections import defaultdict
+import datetime
 from operator import truth
+import time
 import traceback
 
 from nonebot import on_command, on_regex
@@ -845,3 +847,144 @@ async def _(bot: Bot, event: Event, state: T_State):
                 s = '\n'.join(result_set)
                 await find_song.finish(f"您要找的可能是以下歌曲中的其中一首：\n{ s },可以通过对应id进行查询")
 
+
+# 机厅人数记录
+def get_play_field_field_data():
+    with open('src/static/mai/play_field_record.json', 'r', encoding='utf-8') as file:
+        name_list = []
+        try:
+            raw_data = json.load(file)
+            field_data = raw_data['record']
+            file.close()
+            if len(field_data) != 0:
+                for item in field_data:
+                    name_list.append(item['name'])
+        except:
+            print('机厅人数模块错误')
+        finally:
+            return name_list, raw_data, field_data
+
+
+# 查询机厅人数/记录机厅人数
+play_field_record = on_regex(rf"^瓜瓜 (\D+)([几|\d]+)",  priority=5)
+
+
+@play_field_record.handle()
+async def _(bot: Bot, event: Event, state: T_State):
+    name_list, raw_data, field_data = get_play_field_field_data()
+    qq = str(event.get_user_id())
+    regex = f"^瓜瓜 (\D+)([几|\d]+)"
+    res = re.match(regex, str(event.get_message()).strip()).groups()
+    print(res)
+    name = res[0].strip()
+    arg = res[1].strip()
+    if name not in name_list:
+        await play_field_record.finish('暂时没有这个机厅捏，可以通过添加机厅指令自行添加。')
+    if str.isdigit(arg):
+        if int(arg) > 20:
+            await play_field_record.finish(f'你找{arg}人来{name}我看看')
+        tm = time.time()
+        for record in field_data:
+            if record['name'] == name:
+                record['cur_people'] = arg
+                record['record_time'] = tm
+                record['recorder'] = qq
+                break
+        try:
+            with open('src/static/mai/play_field_record.json', 'w', encoding='utf-8') as file:
+                file.write(json.dumps(raw_data))
+                file.close()
+        except:
+            await play_field_record.finish('发生未知错误，请联系bot管理员')
+        await play_field_record.finish(f'收到,现在{name}有{arg}人')
+
+    elif arg == '几':
+        hrx = datetime.datetime.now().hour
+        miny = datetime.datetime.now().minute
+        if hrx < 10:
+            await play_field_record.finish(
+                f'才他妈{hrx}点{miny}，你要堵门？')
+        temp = None
+        for record in field_data:
+            if record['name'] == name:
+                temp = record
+        name = temp['name']
+        cur_people = temp['cur_people']
+        recorder = temp['recorder']
+        record_time = float(temp['record_time'])
+        hour = int((time.time()-record_time)/3600)
+        minute = int((time.time() - record_time) / 60 - 60 * hour)
+        second = int(time.time() - record_time - 3600 * hour - 60 * minute)
+        await play_field_record.finish(
+            f'{name}现在有 {cur_people} 人\n由用户 {recorder} 最后更新于：\n{hour}小时{minute}分钟{second}秒前')
+
+
+add_play_field = on_regex(rf"^添加机厅.+",  priority=4)
+
+
+@add_play_field.handle()
+async def _(bot: Bot, event: Event, state: T_State):
+    name_list, raw_data, field_data = get_play_field_field_data()
+    qq = str(event.get_user_id())
+    regex = f"^添加机厅(.+)"
+    res = re.match(regex, str(event.get_message()).strip()).groups()
+    name = res[0].strip()
+    for char in name:
+        if str.isdigit(char):
+            await add_play_field.finish('请勿添加不含数字机厅名哦')
+        #
+    for item in field_data:
+        if name == item['name']:
+            await add_play_field.finish('该机厅已存在，请勿重复添加')
+    field_data.append({
+        "name": name,
+        "cur_people": 0,
+        "record_time": time.time(),
+        "recorder": qq
+    })
+    with open('src/static/mai/play_field_record.json', 'w', encoding='utf-8') as file:
+        file.write(json.dumps(raw_data))
+        file.close()
+        name_list = get_play_field_field_data()
+    await add_play_field.finish('机厅已经添加')
+
+
+query_play_field = on_command('机厅列表')
+
+
+@query_play_field.handle()
+async def _(bot: Bot, event: Event, state: T_State):
+    name_list, raw_data, field_data = get_play_field_field_data()
+    text = '现有机厅：\n'
+    for item in field_data:
+        name = item['name']
+        text += f'{name}\n'
+    await query_play_field.finish(text)
+
+
+delete_play_field = on_regex(r'删除机厅.+')
+
+
+@delete_play_field.handle()
+async def _(bot: Bot, event: Event, state: T_State):
+    name_list, raw_data, field_data = get_play_field_field_data()
+    regex = '删除机厅(.+)'
+    res = re.match(regex, str(event.get_message()).strip()).groups()
+    name = res[0].strip()
+    if name not in name_list:
+        await delete_play_field.finish('暂时没有这个机厅捏，可以通过添加机厅指令自行添加。')
+    try:
+        with open('src/static/mai/play_field_record.json', 'w', encoding='utf-8') as file:
+            field_data = raw_data['record']
+            print(len(field_data))
+            for i in range(len(field_data)):
+                item = field_data[i]
+                print(item['name'])
+                if item['name'] == name:
+                    del field_data[i]
+            file.write(json.dumps(raw_data))
+            file.close()
+    except Exception as e:
+        traceback.print_exc()
+        print('机厅人数模块错误')
+    await query_play_field.finish('已删除')
