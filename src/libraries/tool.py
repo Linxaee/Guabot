@@ -3,6 +3,7 @@ import json
 import math
 import time
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
+from nonebot.adapters.onebot.v11 import  MessageSegment
 
 
 def hash(qq: int):
@@ -86,3 +87,7 @@ def computeRank(achievement: float) -> str:
 
 def print_to_json(json_str):
     print(json.dumps(json_str, indent=4, ensure_ascii=False))
+
+# def create_messageSegment(type,file_y):
+#     return MessageSegment(type, data={
+#                        'text': f"{music.id}. {music.title}\n"}),

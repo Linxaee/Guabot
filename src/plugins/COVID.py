@@ -1,8 +1,7 @@
 import re
 from nonebot import on_command, on_regex
 from nonebot.typing import T_State
-from nonebot.adapters import Event, Bot
-from nonebot.adapters.cqhttp import Message
+from nonebot.adapters.onebot.v11 import Message, Event, Bot, MessageSegment
 from src.libraries.image import *
 from src.libraries.COVID_draw import generate, DrawPicByQueryCity
 from src.libraries.COVID_data import cityList, get_data
@@ -17,33 +16,22 @@ async def _(bot: Bot, event: Event, state: T_State):
     img, success = await generate(res[0])
     if success == 0:
         await query_by_name.finish(Message([
-            {
-                "type": "image",
-                "data": {
-                    "file": f"base64://{str(image_to_base64(img), encoding='utf-8')}"
-                }
-            }
+            MessageSegment(type='image', data={
+                "file": f"base64://{str(image_to_base64(img), encoding='utf-8')}"}),
         ]))
     elif success == 233:
         await query_by_name.finish(Message([
-            {
-                "type": "text",
-                "data": {
-                    "text": "暂未查询到该地区信息！"
-                }
-            }
+            MessageSegment(type='text', data={
+                "text": "暂未查询到该地区信息！"}),
         ]))
     else:
         await query_by_name.finish(Message([
-            {
-                "type": "text",
-                "data": {
-                    "text": "发生未知错误，请联系Bot管理员！"
-                }
-            }
+            MessageSegment(type='text', data={
+                "text": "发生未知错误，请联系Bot管理员！"}),
         ]))
 
 query_risk_area = on_regex(r'^风险区 .+ *\d?$')
+
 
 @query_risk_area.handle()
 async def _(bot: Bot, event: Event, state: T_State):
@@ -88,59 +76,36 @@ async def _(bot: Bot, event: Event, state: T_State):
         city = city_data.by_subCity_name(name)
         if city == 0:
             await query_risk_area.finish(Message([
-                {
-                    "type": "text",
-                    "data": {
-                        "text": "暂未查询到指定城市信息。"
-                    }
-                }
+                MessageSegment(type='text', data={
+                    "text": "暂未查询到指定城市信息。"}),
             ]))
     img, success = await DrawPicByQueryCity(city, subName, curPage)
     if success == 0:
         await query_risk_area.finish(Message([
-            {
-                "type": "image",
-                "data": {
-                    "file": f"base64://{str(image_to_base64(img), encoding='utf-8')}"
-                }
-            }
+            MessageSegment(type='image', data={
+                "file": f"base64://{str(image_to_base64(img), encoding='utf-8')}"}),
         ]))
     elif success == 233:
         await query_risk_area.finish(Message([
-            {
-                "type": "text",
-                "data": {
-                    "text": "超过最大页码限制，默认显示第一页"
-                }
-            }, {
-                "type": "image",
-                "data": {
-                    "file": f"base64://{str(image_to_base64(img), encoding='utf-8')}"
-                }
-            },
+            MessageSegment(type='text', data={
+                "text": "超过最大页码限制，默认显示第一页"}),
+            MessageSegment(type='image', data={
+                "file": f"base64://{str(image_to_base64(img), encoding='utf-8')}"}),
+
         ]))
     elif success == 555:
         await query_risk_area.finish(Message([
-            {
-                "type": "text",
-                "data": {
-                    "text": "接口异常，请三分钟后再试。\n这个接口经常出问题，用不了就算了（恼"
-                }
-            }
+            MessageSegment(type='text', data={
+                "text": "接口异常，请三分钟后再试。\n这个接口经常出问题，用不了就算了（恼"}),
         ]))
     elif success == 666:
         await query_risk_area.finish(Message([
-            {
-                "type": "text",
-                "data": {
-                    "text": "未查询到该地区风险区域，应该是低风险区域捏。"
-                }
-            }
+            MessageSegment(type='text', data={
+                "text": "未查询到该地区风险区域，应该是低风险区域捏。"})
+
         ]))
     else:
-        {
-            "type": "text",
-            "data": {
-                "text": "发生未知错误，请联系Bot管理员！"
-            }
-        }
+        await query_risk_area.finish(Message([
+            MessageSegment(type='text', data={
+                "text": "发生未知错误，请联系Bot管理员！"}),
+        ]))

@@ -2,7 +2,7 @@ import json
 import time
 import requests
 from nonebot import on_command, require, get_driver, get_bots
-from nonebot.adapters.cqhttp import MessageSegment
+from nonebot.adapters.onebot.v11 import MessageSegment
 from random import randint
 
 from src.libraries.COVID_data import get_level_data
