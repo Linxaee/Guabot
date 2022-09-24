@@ -49,7 +49,7 @@ async def preprocessor(bot, event, state:  T_State = State()):
         raise IgnoredException("not reply group temp message")
 
 
-help = on_command('瓜瓜 help', aliases={'help'})
+help = on_command('瓜瓜 help', aliases={'help'},block=True)
 
 
 @help.handle()
@@ -115,6 +115,16 @@ maimai相关
         [MessageSegment(type='image', data={
             "file":  f"base64://{str(image_to_base64(text_to_image(help_str)), encoding='utf-8')}"
         })]))
+
+
+meme_help = on_command('表情包帮助', block=True)
+
+
+@meme_help.handle()
+async def _(bot:  Bot, event:  Event, state:  T_State = State()):
+    img = Image.open('src/static/petpet/help.jpg')
+    await meme_help.finish(MessageSegment(type='image', data={
+        "file":   f"base64://{str(image_to_base64(img), encoding='utf-8')}"}),)
 
 
 async def _group_poke(bot:  Bot, event:  Event, state:  T_State = State()) -> bool:

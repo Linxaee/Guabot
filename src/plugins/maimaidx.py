@@ -1,13 +1,18 @@
 from collections import defaultdict
+import csv
 import datetime
+from hashlib import blake2b
 from operator import truth
 import time
 import traceback
 
 from nonebot import on_command, on_regex
 from nonebot.typing import T_State
+from nonebot.rule import to_me
 from nonebot.adapters import Event, Bot
 from nonebot.adapters.onebot.v11 import Message, MessageSegment
+from nonebot.exception import FinishedException
+from nonebot.matcher import Matcher
 from nonebot.params import State, CommandArg, Command
 from src.libraries.maimai_pic_draw_func import create_plate_text, draw_com_list, draw_plate_img, draw_score_list, draw_single_record, get_plate_ach
 from src.libraries.tool import hash, resizePic
@@ -25,7 +30,7 @@ def song_txt(music: Music):
         MessageSegment(type='image', data={
                        "file": f"https://www.diving-fish.com/covers/{get_cover_len4_id(music.id)}.png"}),
         MessageSegment(type='text', data={
-                       "text" f"\n{'/'.join(music.level)}"}),
+                       "text": f"\n{'/'.join(music.level)}"}),
     ])
 
 
@@ -382,28 +387,28 @@ async def _(bot: Bot, event: Event, state: T_State = State()):
 
 
 def get_aliases():
-    f = open('src/static/aliases.csv', 'r', encoding='utf-8')
-    tmp = f.readlines()
-    f.close()
-    for t in tmp:
-        arr = t.strip().split('\t')
-        for i in range(len(arr)):
-            if arr[i] != "":
-                music_aliases[arr[i].lower()].append(arr[0])
-                anti_aliases[arr[0].lower()].append(arr[i])
+    music_aliases = defaultdict(list)
+    anti_aliases = defaultdict(list)
+    with open('src/static/aliases.csv', 'r', encoding='utf-8') as f:
+        file_lines = f.readlines()
+        f.close()
+        for line in file_lines:
+            arr = line.split(',')
+            # 去除''
+            for i in range(2, len(arr)):
+                str = arr[i]
+                title = arr[1]
+                if str != '' and str != '\n':
+                    music_aliases[str.lower()].append(title)
+                    anti_aliases[title.lower()].append(str)
     return music_aliases, anti_aliases
 
 
-music_aliases = defaultdict(list)
-anti_aliases = defaultdict(list)
-music_aliases, anti_aliases = get_aliases()
-
 # xx是什么歌
 find_song = on_regex(r".+是什么歌")
-
-
 @find_song.handle()
 async def _(bot: Bot, event: Event, state: T_State = State()):
+    music_aliases, anti_aliases = get_aliases()
     regex = "(.+)是什么歌"
     name = re.match(regex, str(event.get_message())
                     ).groups()[0].strip().lower()
@@ -427,6 +432,7 @@ find_aliases = on_regex(r".+有什么别名")
 
 @find_aliases.handle()
 async def _(bot: Bot, event: Event, state: T_State = State()):
+    music_aliases, anti_aliases = get_aliases()
     regex = "(.+)有什么别名"
     name = re.match(regex, str(event.get_message())
                     ).groups()[0].strip().lower()
@@ -436,8 +442,7 @@ async def _(bot: Bot, event: Event, state: T_State = State()):
         if len(result_set1) == 1:
             music = total_list.by_title(result_set1[0])
             if (music == None):
-                await find_song.finish('''
-未找到此歌曲，可能是已经寄了（确认没有删除的话可通过添加别名指令自行添加）
+                await find_song.finish('''未找到此歌曲，可能是已经寄了（确认没有删除的话可通过添加别名指令自行添加）
 添加别名 <歌曲id> <别名>
 例：添加别名 114514 下北泽
                 ''')
@@ -445,8 +450,7 @@ async def _(bot: Bot, event: Event, state: T_State = State()):
         else:
             await find_song.finish(f"这个别名有很多歌,请用id查询\n或者你也可以试试：\n {name}是什么歌")
     elif name not in anti_aliases:
-        await find_aliases.finish('''
-未找到此歌曲，可能是已经寄了（确认没有删除的话可通过添加别名指令自行添加）
+        await find_aliases.finish('''未找到此歌曲，可能是已经寄了（确认没有删除的话可通过添加别名指令自行添加）
 添加别名 <歌曲id> <别名>
 例：添加别名 114514 下北泽
                 ''')
@@ -455,33 +459,34 @@ async def _(bot: Bot, event: Event, state: T_State = State()):
     await find_aliases.finish(s)
 
 
-adds = on_command('添加别名')
+def add_aliases(id, alias):
+    with open('src/static/aliases.csv', 'r', encoding='utf-8') as f:
+        file_lines = f.readlines()
+        f.close()
+        temp = ''
+        for line in file_lines:
+            arr = line.split(',')
+            if arr[0] == id:
+                line = line.replace('\n', '')
+                line = line + ','+alias+',\n'
+            temp = temp + line
+            f.close
+    with open('src/static/aliases.csv', 'w', newline='', encoding='utf-8') as csvfile:
+        csvfile.writelines(temp)
+        csvfile.close()
+
+
+adds = on_command('添加别名',block=True)
 # white_list2 = ['702611663']
 
 
 @adds.handle()
 async def _(bot: Bot, event: Event, state: T_State, args: Message = CommandArg()):
+    music_aliases, anti_aliases = get_aliases()
     req = args.extract_plain_text().strip().split(" ")
-    # req = state
     dest_song = total_list.by_id(req[0])
-    tmp2 = ''
-    if (len(req) == 2):
-        f = open('src/static/aliases.csv', 'r', encoding='utf-8')
-        tmp = f.readlines()
-        for t in tmp:
-            arr = t.strip().split('\t')
-            if arr[0] == dest_song.title:
-                t = t.replace('\n', '')
-                t = t + "\t" + req[1] + '\n'
-                print(t)
-            tmp2 = tmp2 + t
-        f.close()
-        with open('src/static/aliases.csv', 'w', encoding='utf-8') as q:
-            q.writelines(tmp2)
-            q.close()
-        music_aliases, anti_aliases = get_aliases()
-        await adds.finish("收到(´-ω-`)别名添加成功")
-    await adds.finish("命令错误捏\n例 添加别名 114514 田所浩二")
+    add_aliases(req[0], req[1])
+    await adds.finish("收到(´-ω-`)别名添加成功")
 
 
 ds_dict = {
