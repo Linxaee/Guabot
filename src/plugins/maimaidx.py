@@ -1,7 +1,5 @@
 from collections import defaultdict
-import csv
 import datetime
-from hashlib import blake2b
 from operator import truth
 import time
 import traceback
@@ -219,7 +217,6 @@ jrwm = on_command('今日舞萌', aliases={'今日mai', '今日运势'})
 
 @jrwm.handle()
 async def _(bot: Bot, event: Event, state: T_State = State()):
-    events_list = get_today_events()
     qq = int(event.get_user_id())
     h = hash(qq)
     rp = h % 100
@@ -233,12 +230,6 @@ async def _(bot: Bot, event: Event, state: T_State = State()):
             s += f'宜 {wm_list[i]}\n'
         elif wm_value[i] == 0:
             s += f'忌 {wm_list[i]}\n'
-    s += f'历史上的今天：\n'
-    for i in range(len(events_list)):
-        event = events_list[i]
-        date = event['date']
-        title = event['title']
-        s += f'{date} {title}\n'
     s += "今日推荐歌曲："
     music = total_list[h % len(total_list)]
     await jrwm.finish(Message([
@@ -303,8 +294,12 @@ best_40_pic = on_command('瓜瓜 b40', aliases={'b40', 'B40', '逼40'}, block=Tr
 
 
 @best_40_pic.handle()
-async def _(bot: Bot, event: Event, state: T_State = State()):
-    payload = {'qq': str(event.get_user_id())}
+async def _(bot: Bot, event: Event, state: T_State = State(), args: Message = CommandArg()):
+    arg = args.extract_plain_text()
+    if arg:
+        payload = {'username': arg}
+    else:
+        payload = {'qq': str(event.get_user_id())}
     img, success = await generate(payload)
     if success == 400:
         await best_40_pic.send("未找到此玩家，请确保此玩家的用户名和查分器中的用户名相同。")
@@ -312,7 +307,7 @@ async def _(bot: Bot, event: Event, state: T_State = State()):
         await best_40_pic.send("该用户禁止了其他人获取数据。")
     else:
         await best_40_pic.send('生成中，请稍等')
-        await best_40_pic.send(Message([
+        await best_40_pic.finish(Message([
             MessageSegment(type='image', data={
                 "file": f"base64://{str(image_to_base64(img), encoding='utf-8')}"})]), at_sender=True)
 
@@ -367,7 +362,8 @@ async def _(bot: Bot, event: Event, state: T_State = State()):
 
 # 推分推荐
 
-recommend_score = on_command('瓜瓜 底分分析', block=True)
+recommend_score = on_command('瓜瓜 底分分析', block=True, aliases={
+                             '底分分析', '底力分析', '瓜瓜 底力分析'})
 
 
 @recommend_score.handle()
@@ -382,7 +378,9 @@ async def _(bot: Bot, event: Event, state: T_State = State()):
         await recommend_score.send('生成中，请稍等')
         await recommend_score.send(Message([
             MessageSegment(type='image', data={
-                "file": f"base64://{str(image_to_base64(img), encoding='utf-8')}"})
+                "file": f"base64://{str(image_to_base64(img), encoding='utf-8')}"}),
+            MessageSegment(type='text', data={
+                "text": '推荐规则为随机推荐加分在1-12分范围内的曲目,第一行是鸟加，第二行是鸟，如果有不符合地方踢lin一脚喊他改bug'})
         ]), at_sender=True)
 
 
@@ -398,14 +396,40 @@ def get_aliases():
             for i in range(2, len(arr)):
                 str = arr[i]
                 title = arr[1]
+                id = arr[0]
                 if str != '' and str != '\n':
-                    music_aliases[str.lower()].append(title)
+                    music_aliases[str.lower()].append(
+                        {'id': id, 'title': title})
                     anti_aliases[title.lower()].append(str)
     return music_aliases, anti_aliases
 
 
+music_aliases, anti_aliases = get_aliases()
+
+
+def add_aliases(id, alias):
+
+    with open('src/static/aliases.csv', 'r', encoding='utf-8') as f:
+        file_lines = f.readlines()
+        f.close()
+        temp = ''
+        for line in file_lines:
+            # print_to_json(line)
+            arr = line.split(',')
+            if arr[0] == id:
+                line = line.replace('\n', '')
+                line = line + ','+alias+',\n'
+            temp = temp + line
+            f.close
+    with open('src/static/aliases.csv', 'w', newline='', encoding='utf-8') as csvfile:
+        csvfile.writelines(temp)
+        csvfile.close()
+
+
 # xx是什么歌
 find_song = on_regex(r".+是什么歌")
+
+
 @find_song.handle()
 async def _(bot: Bot, event: Event, state: T_State = State()):
     music_aliases, anti_aliases = get_aliases()
@@ -413,19 +437,27 @@ async def _(bot: Bot, event: Event, state: T_State = State()):
     name = re.match(regex, str(event.get_message())
                     ).groups()[0].strip().lower()
     if name not in music_aliases:
-        await find_song.finish("未找到此歌曲\n可能是已经寄了")
+        await find_song.finish("未找到此歌曲,可能是已经寄了\n如果要通过标题查询请通过 查歌 [标题一部分] 指令查询歌曲哦（指令不需要加中括号）")
     result_set = music_aliases[name]
     if len(result_set) == 1:
-        music = total_list.by_title(result_set[0])
-        if (music == None):
-            await find_song.finish("未找到此歌曲\n可能是已经寄了")
+        music = total_list.by_title(result_set[0]['title'])
+        if music == None:
+            music = total_list.by_id(result_set[0]['id'])
+        if music == None:
+            await find_song.finish("未找到此歌曲,可能是已经寄了\n如果要通过标题查询请通过 查歌 [标题一部分] 指令查询歌曲哦（指令不需要加中括号）")
         await find_song.finish(Message([
             MessageSegment(type='text', data={
                 "data": {"text": "您要找的是不是"}})
         ] + song_txt(music)))
     else:
-        s = '\n'.join(result_set)
+        s = ''
+        for i in range(len(result_set)):
+            music = result_set[i]
+            id = music['id']
+            title = music['title']
+            s += f'{id}.{title}\n'
         await find_song.finish(f"您要找的可能是以下歌曲中的其中一首：\n{ s }")
+
 
 find_aliases = on_regex(r".+有什么别名")
 
@@ -440,43 +472,23 @@ async def _(bot: Bot, event: Event, state: T_State = State()):
     if name in music_aliases:
         result_set1 = music_aliases[name]
         if len(result_set1) == 1:
-            music = total_list.by_title(result_set1[0])
+            music = total_list.by_title(result_set1[0]['title'])
             if (music == None):
-                await find_song.finish('''未找到此歌曲，可能是已经寄了（确认没有删除的话可通过添加别名指令自行添加）
+                await find_song.finish('''未找到此歌曲,可能是已经寄了（确认没有删除的话可通过添加别名指令自行添加）
 添加别名 <歌曲id> <别名>
-例：添加别名 114514 下北泽
-                ''')
+例：添加别名 114514 下北泽''')
             name = music.title.lower()
         else:
             await find_song.finish(f"这个别名有很多歌,请用id查询\n或者你也可以试试：\n {name}是什么歌")
     elif name not in anti_aliases:
-        await find_aliases.finish('''未找到此歌曲，可能是已经寄了（确认没有删除的话可通过添加别名指令自行添加）
+        await find_aliases.finish('''未找到此歌曲,可能是已经寄了（确认没有删除的话可通过添加别名指令自行添加）
 添加别名 <歌曲id> <别名>
-例：添加别名 114514 下北泽
-                ''')
+例：添加别名 114514 下北泽''')
     result_set = anti_aliases[name]
     s = s + ' / '.join(result_set)
     await find_aliases.finish(s)
 
-
-def add_aliases(id, alias):
-    with open('src/static/aliases.csv', 'r', encoding='utf-8') as f:
-        file_lines = f.readlines()
-        f.close()
-        temp = ''
-        for line in file_lines:
-            arr = line.split(',')
-            if arr[0] == id:
-                line = line.replace('\n', '')
-                line = line + ','+alias+',\n'
-            temp = temp + line
-            f.close
-    with open('src/static/aliases.csv', 'w', newline='', encoding='utf-8') as csvfile:
-        csvfile.writelines(temp)
-        csvfile.close()
-
-
-adds = on_command('添加别名',block=True)
+adds = on_command('添加别名', block=True)
 # white_list2 = ['702611663']
 
 
@@ -484,7 +496,10 @@ adds = on_command('添加别名',block=True)
 async def _(bot: Bot, event: Event, state: T_State, args: Message = CommandArg()):
     music_aliases, anti_aliases = get_aliases()
     req = args.extract_plain_text().strip().split(" ")
-    dest_song = total_list.by_id(req[0])
+    id = req[0]
+    alias = req[1]
+    if alias.lower() in music_aliases or alias.upper() in music_aliases:
+        await adds.finish("该歌曲已有该别名,请勿重复添加")
     add_aliases(req[0], req[1])
     await adds.finish("收到(´-ω-`)别名添加成功")
 
@@ -507,13 +522,13 @@ ds_dict = {
     "8": "8",
 }
 # xx定数表
-ds_list = on_regex(r".+定数表")
+ds_list = on_regex(r"(^\d{1,2}\+?)定数表")
 
 
 @ds_list.handle()
 async def _(bot: Bot, event: Event, state: T_State = State()):
     list_dir = 'src/static/mai/ds_list/'
-    regex = "(.+)定数表"
+    regex = "(^\d{1,2}\+?)定数表"
     ds = re.match(regex, str(event.get_message())
                   ).groups()[0].strip().lower()
     if ds not in ds_dict:
@@ -528,13 +543,14 @@ async def _(bot: Bot, event: Event, state: T_State = State()):
         ])
 
 # xx完成表
-com_list = on_regex(r".+完成表", priority=5)
+com_list = on_regex(
+    r"(^\d{1,2}\+?)完成表", priority=5)
 
 
 @com_list.handle()
 async def _(bot: Bot, event: Event, state: T_State = State()):
     qq = str(event.get_user_id())
-    regex = "(.+)完成表"
+    regex = "(^\d{1,2}\+?)完成表"
     ds = re.match(regex, str(event.get_message())
                   ).groups()[0].strip().lower()
     if ds not in ds_dict:
@@ -579,13 +595,13 @@ async def _(bot: Bot, event: Event, state: T_State = State()):
 #         await login.finish("登录格式错误，请重新输入")
 
 # XX分数列表
-score_list = on_regex(r".+分数列表")
+score_list = on_regex(r"(^\d{1,2}\+?)分数列表")
 
 
 @score_list.handle()
 async def _(bot: Bot, event: Event, state: T_State = State()):
     qq = str(event.get_user_id())
-    regex = "(.+)分数列表(.+)?"
+    regex = "(^\d{1,2}\+?)分数列表(.+)?"
     groups = re.match(regex, str(event.get_message())
                       ).groups()
     ds = groups[0].strip().lower()
@@ -702,6 +718,7 @@ single_score = on_regex(r"info(.+)")
 
 @single_score.handle()
 async def _(bot: Bot, event: Event, state: T_State = State()):
+    music_aliases, anti_aliases = get_aliases()
     qq = str(event.get_user_id())
     regex = 'info(.+)'
     res = re.match(regex, str(event.get_message())).groups()
@@ -737,15 +754,19 @@ async def _(bot: Bot, event: Event, state: T_State = State()):
             else:
                 await single_score.finish('发生未知错误，请联系bot管理员')
     else:
+        aliases = aliases.lower()
         if aliases not in music_aliases:
             await single_score.finish('未找到此别名对应的歌曲，可以更换成id进行尝试')
         else:
             # 读取别名对应的歌曲
-            await single_score.send('生成中，请稍等')
             result_set = music_aliases[aliases]
             if len(result_set) == 1:
+                print(result_set[0])
+                await single_score.send('生成中，请稍等')
                 # 若对应唯一
-                music = total_list.by_title(result_set[0])
+                music = total_list.by_title(result_set[0]['title'])
+                if music == None:
+                    music = total_list.by_id(result_set[0]['id'])
                 # 若找到歌则取对应版本歌曲记录
                 records, success = await get_user_plate_records(qq, [music.version])
                 if success == 400:
@@ -771,8 +792,13 @@ async def _(bot: Bot, event: Event, state: T_State = State()):
                 else:
                     await single_score.finish('发生未知错误，请联系bot管理员')
             else:
-                s = '\n'.join(result_set)
-                await find_song.finish(f"您要找的可能是以下歌曲中的其中一首：\n{ s },可以通过对应id进行查询")
+                s = ''
+                for i in range(len(result_set)):
+                    music = result_set[i]
+                    id = music['id']
+                    title = music['title']
+                    s += f'{id}.{title}\n'
+                await find_song.finish(f"您要找的可能是以下歌曲中的其中一首：\n{ s }可以通过info [id]指令进行查询（指令不需要加中括号）")
 
 
 # 机厅人数记录
@@ -792,23 +818,26 @@ def get_play_field_field_data():
             return name_list, raw_data, field_data
 
 
+name_list, raw_data, field_data = get_play_field_field_data()
 # 查询机厅人数/记录机厅人数
-play_field_record = on_regex(rf"^瓜瓜 (\D+)([几|\d]+)",  priority=5)
+play_field_record = on_regex(
+    rf"^(瓜瓜 )?({'|'.join(name_list)})([几|\d]+)",  priority=5)
 
 
 @play_field_record.handle()
 async def _(bot: Bot, event: Event, state: T_State = State()):
     name_list, raw_data, field_data = get_play_field_field_data()
     qq = str(event.get_user_id())
-    regex = f"^瓜瓜 (\D+)([几|\d]+)"
+    regex = f"^(瓜瓜 )?({'|'.join(name_list)})([几|\d]+)"
     res = re.match(regex, str(event.get_message()).strip()).groups()
     print(res)
-    name = res[0].strip()
-    arg = res[1].strip()
+    name = res[1].strip()
+    arg = res[2].strip()
     if name not in name_list:
         await play_field_record.finish('暂时没有这个机厅捏，可以通过添加机厅指令自行添加。')
     if str.isdigit(arg):
-        if int(arg) > 20:
+        arg = int(arg)
+        if arg > 20:
             await play_field_record.finish(f'你找{arg}人来{name}我看看')
         tm = time.time()
         for record in field_data:
@@ -828,7 +857,8 @@ async def _(bot: Bot, event: Event, state: T_State = State()):
     elif arg == '几':
         hrx = datetime.datetime.now().hour
         miny = datetime.datetime.now().minute
-        if hrx < 10:
+        print(hrx)
+        if hrx < 10 or hrx > 23:
             await play_field_record.finish(
                 f'才他妈{hrx}点{miny}，你要堵门？')
         temp = None
@@ -873,7 +903,7 @@ async def _(bot: Bot, event: Event, state: T_State = State()):
         file.write(json.dumps(raw_data))
         file.close()
         name_list = get_play_field_field_data()
-    await add_play_field.finish('机厅已经添加')
+    await add_play_field.finish('机厅已经添加,将在下次bot重启时生效')
 
 
 query_play_field = on_command('机厅列表')
@@ -885,7 +915,7 @@ async def _(bot: Bot, event: Event, state: T_State = State()):
     text = '现有机厅：\n'
     for item in field_data:
         name = item['name']
-        text += f'{name}\n'
+        text += f'{name}/'
     await query_play_field.finish(text)
 
 
@@ -905,7 +935,6 @@ async def _(bot: Bot, event: Event, state: T_State = State()):
             field_data = raw_data['record']
             for i in range(len(field_data)):
                 item = field_data[i]
-                print(item['name'])
                 if item['name'] == name:
                     del field_data[i]
             file.write(json.dumps(raw_data))

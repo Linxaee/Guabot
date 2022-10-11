@@ -261,7 +261,7 @@ class DrawBest(object):
         for dxItem in dxBest:
             if (dxItem.achievement < 100.5 and 100.5-dxItem.achievement < 0.2) or (dxItem.achievement < 100 and 100-dxItem.achievement < 0.2):
                 dxList.append(dxItem)
-        if len(sdList) >= 2 and len(dxList) >= 1:
+        if len(sdList) > 2 and len(dxList) > 1:
             count = 0
             while count < 2:
                 randomNum = random.randint(0, len(sdList)-1)

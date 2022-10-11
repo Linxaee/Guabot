@@ -88,10 +88,12 @@ async def login_prober(qq, username, password):
             return 1
 
 # 获取玩家全部成绩
+
+
 async def get_user_data(qq: str):
     version = ['maimai', 'maimai PLUS', 'maimai GreeN', 'maimai GreeN PLUS',
                'maimai ORANGE', 'maimai ORANGE PLUS', 'maimai PiNK', 'maimai PiNK PLUS',
-               'maimai MURASAKi', 'maimai MURASAKi PLUS', 'maimai MiLK', 'MiLK PLUS', 'maimai FiNALE', 'maimai でらっくす', 'maimai でらっくす PLUS', 'maimai でらっくす Splash']
+               'maimai MURASAKi', 'maimai MURASAKi PLUS', 'maimai MiLK', 'MiLK PLUS', 'maimai FiNALE', 'maimai でらっくす', 'maimai でらっくす PLUS', 'maimai でらっくす Splash', 'maimai でらっくす Splash PLUS']
     url = 'https://www.diving-fish.com/api/maimaidxprober/query/plate'
     payload = {
         "qq": f"{qq}",

@@ -36,7 +36,9 @@ def mix_list(sssp_list, sss_list, floor):
             sssp_res = random.sample(sssp_temp, 2)
         else:
             while len(sssp_temp) < 2:
-                sssp_temp.append(random.choice(sssp_list))
+                temp = random.choice(sssp_list)
+                if temp not in sssp_temp:
+                    sssp_temp.append(temp)
             for item in sssp_temp:
                 sssp_res.append(item)
     else:
@@ -50,7 +52,6 @@ def mix_list(sssp_list, sss_list, floor):
                     sss_temp.append(item)
             else:
                 if target_ra - floor <= 8 and target_ra - floor >= 3:
-
                     sss_temp.append(item)
         if len(sss_temp) >= 2:
             sss_res = random.sample(sss_temp, 2)
@@ -275,7 +276,7 @@ async def draw_recommend_pic(payload: Dict):
                     achievement = 0
                     music_ra = computeRa(ds, 100)
                     # 判断定数是否在鸟推荐范围内
-                    if music_ra > dx_floor:
+                    if music_ra > dx_floor and music_ra < dx_floor+12:
                         ds_index = music.ds.index(ds)
                         # 判断是否已经再best中
                         if dx_best.find_by_id(int(music.id), ds_index) != -1:
@@ -287,7 +288,7 @@ async def draw_recommend_pic(payload: Dict):
                                 else:
                                     # 判断定数是否在鸟加推荐范围内
                                     music_ra = computeRa(ds, 100.5)
-                                    if music_ra > dx_floor:
+                                    if music_ra > dx_floor and music_ra < dx_floor + 10:
                                         ds_index = music.ds.index(ds)
                                         # 判断是否已经再best中
                                         if dx_best.find_by_id(int(music.id), ds_index) != -1:
@@ -322,7 +323,7 @@ async def draw_recommend_pic(payload: Dict):
                     else:
                         # 判断定数是否在鸟加推荐范围内
                         music_ra = computeRa(ds, 100.5)
-                        if music_ra > dx_floor:
+                        if music_ra > dx_floor and music_ra < dx_floor+12:
                             ds_index = music.ds.index(ds)
                             # 判断是否已经再best中
                             if dx_best.find_by_id(int(music.id), ds_index) != -1:
@@ -347,7 +348,7 @@ async def draw_recommend_pic(payload: Dict):
                     achievement = 0
                     music_ra = computeRa(ds, 100)
                     # 判断定数是否在鸟推荐范围内
-                    if music_ra > sd_floor:
+                    if music_ra > sd_floor and music_ra < sd_floor+12:
                         ds_index = music.ds.index(ds)
                         # 判断是否已经再best中
                         if sd_best.find_by_id(int(music.id), ds_index) != -1:
@@ -359,7 +360,7 @@ async def draw_recommend_pic(payload: Dict):
                                 else:
                                     # 判断定数是否在鸟加推荐范围内
                                     music_ra = computeRa(ds, 100.5)
-                                    if music_ra > sd_floor:
+                                    if music_ra > sd_floor and music_ra < sd_floor + 10:
 
                                         ds_index = music.ds.index(ds)
                                         # 判断是否已经再best中
@@ -395,7 +396,7 @@ async def draw_recommend_pic(payload: Dict):
                     else:
                         # 判断定数是否在鸟加推荐范围内
                         music_ra = computeRa(ds, 100.5)
-                        if music_ra > sd_floor:
+                        if music_ra > sd_floor and music_ra < sd_floor+12:
                             ds_index = music.ds.index(ds)
                             # 判断是否已经再best中
                             if sd_best.find_by_id(int(music.id), ds_index) != -1:
@@ -419,7 +420,6 @@ async def draw_recommend_pic(payload: Dict):
                            sd_recommend_list_sss, sd_floor)
         dx_list = mix_list(dx_recommend_list_sssp,
                            dx_recommend_list_sss, dx_floor)
-
         # 绘制背景
         pic_dir = 'src/static/mai/pic/'
         cover_dir = 'src/static/mai/cover/'
